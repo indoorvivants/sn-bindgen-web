@@ -98,7 +98,7 @@ smoke-test:
   RUN apt update && apt install -y curl
   WORKDIR /test
   WITH DOCKER --load service:latest=+docker
-    RUN docker run -d -p 9999:9999 service:latest && \
+    RUN docker run -d -p 9999:9999 service:latest && sleep 5 && \
         curl -v http://localhost:9999/api/status/hello
   END
 
