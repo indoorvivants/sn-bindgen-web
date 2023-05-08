@@ -23,3 +23,6 @@ jobs:
 
     - name: Run build
       run: earthly --ci --output +docker
+
+    - name: Run Smoke test
+      run: earthly --ci --output +smoke-test

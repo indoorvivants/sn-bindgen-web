@@ -89,9 +89,19 @@ docker:
 
     RUN ldd /usr/bin/bindgen-web || echo "runnable"
 
-    EXPOSE 8080
+    EXPOSE 9999
     CMD ["unitd", "--no-daemon", "--control", "unix:/var/run/control.unit.sock", "--log", "/dev/stderr"]
     SAVE IMAGE --push bindgen-web:$ver
+
+smoke-test:
+  FROM earthly/dind:ubuntu
+  RUN apt update && apt install -y curl
+  WORKDIR /test
+  WITH DOCKER --load service:latest=+docker
+    RUN docker run -d service:latest && \
+        curl -v http://localhost:9999/api/status/hello
+  END
+
 
 unit:
   FROM ubuntu:22.04
