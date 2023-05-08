@@ -1,30 +1,42 @@
-
-namespace smithy4s.hello
+$version: "2"
+namespace bindgen.web.api
 
 use alloy#simpleRestJson
 
 @simpleRestJson
-service HelloWorldService {
+service BindgenService {
   version: "1.0.0",
-  operations: [Hello]
+  operations: [Submit, GetStatus]
 }
 
-@http(method: "POST", uri: "/{name}", code: 200)
-operation Hello {
-  input: Person,
-  output: Greeting
+@http(method: "POST", uri: "/api/submit", code: 200)
+operation Submit {
+  input := {
+    @required
+    headerCode: String
+  },
+  output := {
+    @required
+    id: String
+  }
 }
 
-structure Person {
-  @httpLabel
-  @required
-  name: String,
-
-  @httpQuery("town")
-  town: String
+@readonly
+@http(method: "GET", uri: "/api/status/{id}", code: 200)
+operation GetStatus {
+  input := {
+    @required
+    @httpLabel
+    id: String
+  },
+  output := {
+    @required
+    status: Status
+  }
 }
 
-structure Greeting {
-  @required
-  message: String
+enum Status {
+    PROCESSING
+    FAILED
+    SUCCESS
 }

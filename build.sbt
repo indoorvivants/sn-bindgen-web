@@ -1,14 +1,23 @@
 import scala.scalanative.build.Mode
+
+val V = new {
+  val scala = "3.2.2"
+
+  val snunit = "0.5.2"
+
+  val http4s = "0.23.18"
+}
+
 lazy val `http-server` =
   project
     .in(file("modules/http-server"))
     .enablePlugins(ScalaNativePlugin)
     .enablePlugins(Smithy4sCodegenPlugin)
     .settings(
-      scalaVersion := "3.2.2",
+      scalaVersion := V.scala,
       libraryDependencies += "com.disneystreaming.smithy4s" %%% "smithy4s-http4s" % smithy4sVersion.value,
-      libraryDependencies += "com.github.lolgab" %%% "snunit-http4s0.23" % "0.5.2",
-      libraryDependencies += "org.http4s" %%% "http4s-dsl" % "0.23.18",
+      libraryDependencies += "com.github.lolgab" %%% "snunit-http4s0.23" % V.snunit,
+      libraryDependencies += "org.http4s" %%% "http4s-dsl" % V.http4s,
       nativeConfig ~= { _.withIncrementalCompilation(true) }
     )
 
@@ -130,7 +139,7 @@ buildHttpServer := {
     preserveLastModified = true
   )
 
-  //process.Process(s"chmod 0777 ${destination}").!!
+  // process.Process(s"chmod 0777 ${destination}").!!
 
   sys.env.get("CI").foreach { _ =>
     val sudo = if (sys.env.contains("USE_SUDO")) "sudo " else ""
