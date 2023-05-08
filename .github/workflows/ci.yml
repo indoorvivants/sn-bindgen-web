@@ -1,0 +1,25 @@
+name: Build
+on:
+  push:
+    tags: ["v*"]
+    branches: ["main"]
+  pull_request:
+    branches: ["*"]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_COLOR: 1
+    steps:
+    - uses: earthly/actions/setup-earthly@v1
+      with:
+        version: v0.7.4
+    - uses: actions/checkout@v2
+
+    - name: Run build
+      run: earthly --ci --output +docker

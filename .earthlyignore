@@ -1,0 +1,16 @@
+*.class
+*.tasty
+.metals
+.bloop
+.bsp
+.sbt
+*.gch
+.cache
+target
+*.o
+
+**/target/**
+project/project
+project/metals.sbt
+build/**
+Earthfile
