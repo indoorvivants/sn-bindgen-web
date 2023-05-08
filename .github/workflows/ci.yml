@@ -25,4 +25,4 @@ jobs:
       run: earthly --ci --output +docker
 
     - name: Run Smoke test
-      run: earthly --ci --output +smoke-test
+      run: earthly -P +smoke-test
