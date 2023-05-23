@@ -65,6 +65,7 @@ app:
 
     RUN sbt --client 'clean; buildApp'
     SAVE ARTIFACT build/bindgen-web /build/bindgen-web AS LOCAL .docker-build/bindgen-web
+    SAVE ARTIFACT build/bindgen-worker /build/bindgen-worker AS LOCAL .docker-build/bindgen-worker
     SAVE ARTIFACT build/static /build/static AS LOCAL .docker-build/static
 
     ENV BINDGEN_WEB_HTTP_APP_PATH=/usr/bin/bindgen-web
@@ -81,10 +82,12 @@ docker:
     ARG ver=latest
 
     COPY +app/build/bindgen-web /usr/bin/bindgen-web
+    COPY +app/build/bindgen-worker /usr/bin/bindgen-worker
     COPY +app/build/static/* /www/static/
     COPY +app/build/config.json /docker-entrypoint.d/config.json
 
     RUN chown -R unit /usr/bin/bindgen-web && chmod +x /usr/bin/bindgen-web && chmod 0777 /usr/bin/bindgen-web
+    RUN chown -R unit /usr/bin/bindgen-worker && chmod +x /usr/bin/bindgen-worker && chmod 0777 /usr/bin/bindgen-worker
     RUN chown -R unit /www/static
 
     RUN ldd /usr/bin/bindgen-web || echo "runnable"
