@@ -54,7 +54,7 @@ object Store:
       .evalTap { db =>
         val migrations = List(
           sql"""
-           |create table bindings(
+           |create table if not exists bindings(
            |  id text primary key not null,
            |  added int not null,
            |  completed int,
@@ -64,7 +64,7 @@ object Store:
            |  glue_code blob 
            |);""".stripMargin,
           sql"""
-           |create table leases(
+           |create table if not exists leases(
            |  binding_id text not null,
            |  worker_id text not null,
            |  checked_in_at int not null

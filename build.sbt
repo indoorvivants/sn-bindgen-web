@@ -3,7 +3,7 @@ import scala.scalanative.build.Mode
 val V = new {
   val Scala = "3.2.2"
 
-  val snunit = "0.5.2"
+  val snunit = "0.5.4"
 
   val snCrypto = "0.0.4"
 

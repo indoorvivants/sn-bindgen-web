@@ -1,4 +1,5 @@
 $version: "2"
+
 namespace bindgen.web.domain
 
 use alloy#simpleRestJson
