@@ -49,6 +49,7 @@ object app extends snunit.Http4sApp:
               .evalTap(_ => scribe.cats.io.info(s"Opened database in $value"))
         }
         store.flatMap { store =>
+          Worker.create(store).toResource.flatMap(_.process) *>
           submitter(queue, store).compile.drain.background *>
             SimpleRestJsonBuilder
               .routes(JobServiceImpl(queue))

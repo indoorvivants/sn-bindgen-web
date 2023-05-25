@@ -65,7 +65,7 @@ lazy val `queue-processor` =
         .ManifestFile((ThisBuild / baseDirectory).value / "vcpkg.json"),
       vcpkgNativeConfig ~= {
         _.withRenamedLibraries(
-          Map("zeromq" -> "libzmq", "czmq" -> "libczmq")
+          Map("zstd" -> "libzstd")
         )
       },
       bindgenMode := bindgen.plugin.BindgenMode.Manual(

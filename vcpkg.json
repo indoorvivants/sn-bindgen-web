@@ -3,13 +3,8 @@
   "name": "bindgen-web",
   "builtin-baseline": "501db0f17ef6df184fcdbfbe0f87cde2313b6ab1",
   "dependencies": [
-    {"name":"czmq", "version>=": "4.2.1"},
-    {"name":"zeromq", "version>=": "4.3.4"},
     {"name":"zstd", "version>=": "1.5.2"},
     {"name":"sqlite3", "version>=": "3.39.2"},
     {"name":"openssl", "version>=": "3.0.5"}
-  ],
-  "overrides": [
-    {"name": "zeromq", "version": "4.3.4"}
   ]
 }

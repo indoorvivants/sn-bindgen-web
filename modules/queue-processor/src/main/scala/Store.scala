@@ -20,7 +20,7 @@ class Store private (db: Database[IO]):
     IO.realTimeInstant.flatMap { instant =>
       UUIDGen.randomUUID[IO].flatMap { id =>
         db.execute(
-          sql"insert into bindings (id, added, header_code) values ($text, $integer, $blob)".command,
+          sql"insert into bindings (id, added, header_code) values ($text, $integer, $blob);".command,
           (
             id.toString,
             instant.getEpochSecond(),
@@ -30,10 +30,47 @@ class Store private (db: Database[IO]):
       }
     }
 
+  val jobIdCodec =
+    text.imap[JobId](t => JobId(UUID.fromString(t)))(_.value.toString)
+
+  def complete(id: JobId) =
+    IO.realTimeInstant.map(_.getEpochSecond()).flatMap { instant =>
+      db.execute(
+        sql"update bindings set completed = $integer where id = $jobIdCodec;".command,
+        (instant, id)
+      )
+    }
+
+  def removeLease(workerId: WorkerId, jid: JobId) =
+    db.execute(
+      sql"delete from leases where binding_id = $jobIdCodec;".command,
+      jid
+    )
+
+  def createLeases(workerId: WorkerId, limit: Int): fs2.Stream[IO, JobId] =
+    fs2.Stream.eval(IO.realTimeInstant.map(_.getEpochSecond())).flatMap {
+      inst =>
+        db.stream(
+          sql"""
+            |insert into leases 
+            |  select 
+              |    b.id, ${text}, ${integer} 
+            |  from 
+            |    bindings b left join leases l on l.binding_id = b.id 
+            |  where 
+            |    l.worker_id is null 
+            |    and b.completed is null 
+            |  limit ${integer} 
+            |returning binding_id;""".stripMargin.query(jobIdCodec),
+          (workerId.value.toString, inst, limit),
+          limit.min(100)
+        )
+    }
+
   def getSpec(id: JobId): IO[Option[Job]] =
     val jobCodec =
       (
-        text.asDecoder.map(UUID.fromString(_)).map(JobId.apply),
+        jobIdCodec,
         blob.asDecoder.map(a => new String(a.toArray)).map(HeaderCode.apply)
       ).mapN(Job.apply)
 
