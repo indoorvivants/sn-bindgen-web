@@ -6,11 +6,13 @@ import cats.effect.*
 import org.http4s.*
 import org.http4s.dsl.io.*
 import smithy4s.http4s.SimpleRestJsonBuilder
-import bindgen.web.domain.GeneratedBinding
-import bindgen.web.domain.JobId
-import bindgen.web.domain.HeaderCode
-import bindgen.web.domain.PackageName
+import bindgen.web.domain.*
 import cats.effect.std.UUIDGen
+import org.http4s.ember.client.EmberClientBuilder
+import bindgen.web.internal.jobs.JobService
+import cats.effect.std.Env
+import bindgen.web.internal.jobs.JobServiceGen
+import bindgen.web.api.SubmitOutput
 
 object app extends snunit.Http4sApp:
   scribe.Logger.root
@@ -23,16 +25,45 @@ object app extends snunit.Http4sApp:
     .replace()
 
   def routes =
-    SimpleRestJsonBuilder.routes(BindgenServiceImpl).resource.map(_.orNotFound)
+    val service = Env[IO].get("WORKER_HOST").toResource.flatMap {
+      case Some(host) =>
+        BindgenServiceImpl.create(Uri.unsafeFromString(host))
+
+      case None =>
+        IO.raiseError(
+          new java.lang.RuntimeException(
+            "WORKER_HOST environment variable is not set, cannot establish connection to the worker"
+          )
+        ).toResource
+    }
+
+    service.flatMap { impl =>
+      SimpleRestJsonBuilder.routes(impl).resource.map(_.orNotFound)
+    }
+  end routes
+
 end app
 
-object BindgenServiceImpl extends BindgenService[IO]:
+class BindgenServiceImpl(workerClient: JobService[IO])
+    extends BindgenService[IO]:
   override def getBinding(id: JobId): IO[GeneratedBinding] = ???
   override def getStatus(id: JobId): IO[GetStatusOutput]   = ???
   override def submit(
-      headerCode: HeaderCode,
-      name: PackageName,
-      clangFlags: Option[List[String]]
+      spec: BindingSpec
   ): IO[SubmitOutput] =
-    UUIDGen.randomUUID[IO].map(uuid => SubmitOutput(JobId(uuid)))
+    workerClient.submit(spec).map(so => SubmitOutput(so.id))
+end BindgenServiceImpl
+
+object BindgenServiceImpl:
+  def create(workerUri: Uri) =
+    EmberClientBuilder
+      .default[IO]
+      .build
+      .flatMap(cl =>
+        SimpleRestJsonBuilder(JobService)
+          .client[IO](cl)
+          .uri(workerUri)
+          .resource
+      )
+      .map(BindgenServiceImpl(_))
 end BindgenServiceImpl

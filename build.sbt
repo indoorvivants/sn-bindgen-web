@@ -16,16 +16,35 @@ val V = new {
   val opaqueNewtypes = "0.0.2"
 
   val porcupine = "0.0.1"
+
+  val macroTaskExecutor = "1.1.1"
+
+  val laminar = "15.0.1"
 }
 
 val isScala3 = Seq(VirtualAxis.scalaABIVersion(V.Scala))
 val isNative = Seq(VirtualAxis.native)
+val isJS     = Seq(VirtualAxis.js)
+
+lazy val frontend =
+  projectMatrix
+    .dependsOn(protocols)
+    .in(file("modules/frontend"))
+    .defaultAxes((isScala3 ++ isJS)*)
+    .jsPlatform(Seq(V.Scala))
+    .settings(
+      libraryDependencies ++= Seq(
+        "com.raquo"    %%% "laminar"                     % V.laminar,
+        "org.scala-js" %%% "scala-js-macrotask-executor" % V.macroTaskExecutor
+      )
+    )
 
 lazy val protocols =
   projectMatrix
     .in(file("modules/protocols"))
     .defaultAxes(isScala3*)
     .nativePlatform(Seq(V.Scala))
+    .jsPlatform(Seq(V.Scala))
     .enablePlugins(Smithy4sCodegenPlugin)
     .settings(
       libraryDependencies += "com.disneystreaming.smithy4s" %%% "smithy4s-http4s" % smithy4sVersion.value
@@ -36,13 +55,16 @@ lazy val `http-server` =
     .in(file("modules/http-server"))
     .dependsOn(protocols)
     .defaultAxes((isScala3 ++ isNative)*)
-    .enablePlugins(ScalaNativePlugin)
+    .enablePlugins(ScalaNativePlugin, VcpkgNativePlugin)
     .nativePlatform(Seq(V.Scala))
     .settings(
+      vcpkgDependencies := VcpkgDependencies
+        .ManifestFile((ThisBuild / baseDirectory).value / "vcpkg.json"),
       libraryDependencies += "com.github.lolgab" %%% "snunit-http4s0.23" % V.snunit,
       libraryDependencies += "com.github.lolgab" %%% "scala-native-crypto" % V.snCrypto,
-      libraryDependencies += "org.http4s" %%% "http4s-dsl" % V.http4s,
-      libraryDependencies += "com.outr"   %%% "scribe-cats"     % V.scribe,
+      libraryDependencies += "org.http4s" %%% "http4s-dsl"          % V.http4s,
+      libraryDependencies += "org.http4s" %%% "http4s-ember-client" % V.http4s,
+      libraryDependencies += "com.outr"   %%% "scribe-cats"         % V.scribe,
       nativeConfig ~= { _.withIncrementalCompilation(true) }
     )
 
@@ -57,9 +79,9 @@ lazy val `queue-processor` =
       libraryDependencies += "com.indoorvivants" %%% "opaque-newtypes" % V.opaqueNewtypes, // SBT
       libraryDependencies += "com.github.lolgab" %%% "snunit-http4s0.23" % V.snunit,
       libraryDependencies += "com.github.lolgab" %%% "scala-native-crypto" % V.snCrypto,
-      libraryDependencies += "com.outr"       %%% "scribe-cats"     % V.scribe,
-      libraryDependencies += "org.http4s"     %%% "http4s-dsl" % V.http4s,
-      libraryDependencies += "com.armanbilge" %%% "porcupine"  % V.porcupine,
+      libraryDependencies += "com.outr"       %%% "scribe-cats" % V.scribe,
+      libraryDependencies += "org.http4s"     %%% "http4s-dsl"  % V.http4s,
+      libraryDependencies += "com.armanbilge" %%% "porcupine"   % V.porcupine,
       nativeConfig ~= { _.withIncrementalCompilation(true) },
       vcpkgDependencies := VcpkgDependencies
         .ManifestFile((ThisBuild / baseDirectory).value / "vcpkg.json"),
@@ -181,6 +203,9 @@ def unitConfig(
       },
       "type": "external",
       "executable": "$webPath",
+      "environment": {
+        "WORKER_HOST": "http://localhost:8888"
+      },
       "limits": {
         "timeout": 1,
         "requests": 1000
@@ -319,7 +344,7 @@ updateUnitConfiguration := {
 
 lazy val writeConfig = taskKey[File]("")
 writeConfig := {
-  val buildPath   = ((ThisBuild / baseDirectory).value / "build")
+  val buildPath          = ((ThisBuild / baseDirectory).value / "build")
   val defaultStoragePath = ((ThisBuild / baseDirectory).value / "data")
   IO.createDirectory(defaultStoragePath)
 

@@ -16,7 +16,10 @@ service BindgenService {
 
 @http(method: "POST", uri: "/api/submit", code: 200)
 operation Submit {
-  input: BindingSpec,
+  input := {
+    @required
+    spec: BindingSpec
+  },
   output := {
     @required
     id: JobId
