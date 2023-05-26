@@ -33,6 +33,9 @@ class Store private (db: Database[IO]):
   val jobIdCodec =
     text.imap[JobId](t => JobId(UUID.fromString(t)))(_.value.toString)
 
+  val workerIdCodec =
+    text.imap[WorkerId](t => WorkerId(UUID.fromString(t)))(_.value.toString)
+
   def complete(id: JobId) =
     IO.realTimeInstant.map(_.getEpochSecond()).flatMap { instant =>
       db.execute(
@@ -47,6 +50,26 @@ class Store private (db: Database[IO]):
       jid
     )
 
+  def isCompleted(jid: JobId): IO[Option[JobId]] =
+    db.option(
+      sql"select id from bindings where completed is not null".query(
+        jobIdCodec
+      )
+    )
+
+  val timeStream = fs2.Stream.eval(IO.realTimeInstant).map(_.getEpochSecond())
+
+  def workSteal(workerId: WorkerId): fs2.Stream[IO, JobId] =
+    val q = sql"""
+    | update leases set worker_id = $workerIdCodec where binding_id 
+    |  in (select binding_id from leases where ($integer - checked_in_at > 60) limit 5)
+    |  returning binding_id
+    """.stripMargin.query(jobIdCodec)
+    timeStream.flatMap { instant =>
+      db.stream(q, (workerId, instant), 1024)
+    }
+  end workSteal
+
   def createLeases(workerId: WorkerId, limit: Int): fs2.Stream[IO, JobId] =
     fs2.Stream.eval(IO.realTimeInstant.map(_.getEpochSecond())).flatMap {
       inst =>
@@ -54,7 +77,7 @@ class Store private (db: Database[IO]):
           sql"""
             |insert into leases 
             |  select 
-              |    b.id, ${text}, ${integer} 
+            |    b.id, ${workerIdCodec}, ${integer} 
             |  from 
             |    bindings b left join leases l on l.binding_id = b.id 
             |  where 
@@ -62,10 +85,27 @@ class Store private (db: Database[IO]):
             |    and b.completed is null 
             |  limit ${integer} 
             |returning binding_id;""".stripMargin.query(jobIdCodec),
-          (workerId.value.toString, inst, limit),
+          (workerId, inst, limit),
           limit.min(100)
         )
     }
+
+  def getOrdering(): IO[Map[JobId.Type, Int]] =
+    db.stream(
+      sql"""
+     |select 
+     |  id, row_number() over (order by added) 
+     |from 
+     |  bindings 
+     |where 
+     |  completed is null;""".stripMargin.query(
+        jobIdCodec.product(integer.imap(_.toInt)(_.toLong))
+      ),
+      (),
+      1024
+    ).compile
+      .toVector
+      .map(_.toMap)
 
   def getSpec(id: JobId): IO[Option[Job]] =
     val jobCodec =

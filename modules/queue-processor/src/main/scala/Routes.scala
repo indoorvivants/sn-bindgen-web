@@ -39,22 +39,25 @@ object app extends snunit.Http4sApp:
             Store
               .open(":memory:")
               .evalTap(_ =>
-                scribe.cats.io.warn(
+                Log.warn(
                   "environment variable DB_PATH is not set, Sqlite database will be in-memory only"
                 )
               )
           case Some(value) =>
             Store
               .open(value)
-              .evalTap(_ => scribe.cats.io.info(s"Opened database in $value"))
+              .evalTap(_ => Log.info(s"Opened database in $value"))
         }
-        store.flatMap { store =>
-          Worker.create(store).toResource.flatMap(_.process) *>
-          submitter(queue, store).compile.drain.background *>
-            SimpleRestJsonBuilder
-              .routes(JobServiceImpl(queue))
-              .resource
-              .map(_.orNotFound)
+        IO.ref(Map.empty[JobId, Int]).toResource.flatMap { ref =>
+          store.flatMap { store =>
+            Worker.create(store).toResource.flatMap(_.process) *>
+              submitter(queue, store).compile.drain.background *>
+              orderingRefresh(ref, store).compile.drain.background *>
+              SimpleRestJsonBuilder
+                .routes(JobServiceImpl(queue, store))
+                .resource
+                .map(_.orNotFound)
+          }
         }
       }
 
@@ -67,10 +70,26 @@ object app extends snunit.Http4sApp:
       .evalMap { (spec, latch) =>
         store.record(spec).flatMap(latch.complete)
       }
+
+  def orderingRefresh(
+      ref: Ref[IO, Map[JobId, Int]],
+      store: Store
+  ) =
+    fs2.Stream
+      .repeatEval(store.getOrdering())
+      .evalTap { m =>
+        m.values.maxOption.traverse(i =>
+          Log.info(s"Number of bindings left to complete: $i")
+        )
+
+      }
+      .evalMap(ref.set)
+      .meteredStartImmediately(5.seconds)
 end app
 
 class JobServiceImpl(
-    submissionQueue: Queue[IO, (BindingSpec, Deferred[IO, JobId])]
+    submissionQueue: Queue[IO, (BindingSpec, Deferred[IO, JobId])],
+    store: Store
 ) extends JobService[IO]:
   override def getStatus(id: JobId): IO[GetStatusOutput] = IO {
     GetStatusOutput(

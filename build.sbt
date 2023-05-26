@@ -50,6 +50,16 @@ lazy val protocols =
       libraryDependencies += "com.disneystreaming.smithy4s" %%% "smithy4s-http4s" % smithy4sVersion.value
     )
 
+lazy val vcpkgSettings = Seq(
+  vcpkgDependencies := VcpkgDependencies
+    .ManifestFile((ThisBuild / baseDirectory).value / "vcpkg.json"),
+  vcpkgNativeConfig ~= {
+    _.withRenamedLibraries(
+      Map("zstd" -> "libzstd")
+    )
+  }
+)
+
 lazy val `http-server` =
   projectMatrix
     .in(file("modules/http-server"))
@@ -58,14 +68,13 @@ lazy val `http-server` =
     .enablePlugins(ScalaNativePlugin, VcpkgNativePlugin)
     .nativePlatform(Seq(V.Scala))
     .settings(
-      vcpkgDependencies := VcpkgDependencies
-        .ManifestFile((ThisBuild / baseDirectory).value / "vcpkg.json"),
       libraryDependencies += "com.github.lolgab" %%% "snunit-http4s0.23" % V.snunit,
       libraryDependencies += "com.github.lolgab" %%% "scala-native-crypto" % V.snCrypto,
       libraryDependencies += "org.http4s" %%% "http4s-dsl"          % V.http4s,
       libraryDependencies += "org.http4s" %%% "http4s-ember-client" % V.http4s,
       libraryDependencies += "com.outr"   %%% "scribe-cats"         % V.scribe,
-      nativeConfig ~= { _.withIncrementalCompilation(true) }
+      nativeConfig ~= { _.withIncrementalCompilation(true) },
+      vcpkgSettings
     )
 
 lazy val `queue-processor` =
@@ -76,6 +85,7 @@ lazy val `queue-processor` =
     .nativePlatform(Seq(V.Scala))
     .enablePlugins(ScalaNativePlugin, VcpkgNativePlugin, BindgenPlugin)
     .settings(
+      vcpkgSettings,
       libraryDependencies += "com.indoorvivants" %%% "opaque-newtypes" % V.opaqueNewtypes, // SBT
       libraryDependencies += "com.github.lolgab" %%% "snunit-http4s0.23" % V.snunit,
       libraryDependencies += "com.github.lolgab" %%% "scala-native-crypto" % V.snCrypto,
@@ -83,13 +93,6 @@ lazy val `queue-processor` =
       libraryDependencies += "org.http4s"     %%% "http4s-dsl"  % V.http4s,
       libraryDependencies += "com.armanbilge" %%% "porcupine"   % V.porcupine,
       nativeConfig ~= { _.withIncrementalCompilation(true) },
-      vcpkgDependencies := VcpkgDependencies
-        .ManifestFile((ThisBuild / baseDirectory).value / "vcpkg.json"),
-      vcpkgNativeConfig ~= {
-        _.withRenamedLibraries(
-          Map("zstd" -> "libzstd")
-        )
-      },
       bindgenMode := bindgen.plugin.BindgenMode.Manual(
         scalaDir = sourceDirectory.value / "main" / "scala" / "generated",
         cDir =
@@ -99,16 +102,6 @@ lazy val `queue-processor` =
         val configurator = vcpkgConfigurator.value
         import bindgen.interface.*
         Seq(
-          Binding
-            .builder(configurator.includes("czmq") / "czmq.h", "czmq")
-            .withCImports(List("czmq.h"))
-            .withClangFlags(
-              List(
-                "-I" + configurator.includes("czmq").toString,
-                "-I" + configurator.includes("zeromq").toString
-              )
-            )
-            .build,
           Binding
             .builder(configurator.includes("zstd") / "zstd.h", "zstd")
             .withCImports(List("zstd.h"))

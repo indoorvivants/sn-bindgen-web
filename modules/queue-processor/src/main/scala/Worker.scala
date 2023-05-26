@@ -19,26 +19,32 @@ class Worker private (id: WorkerId, store: Store):
           .meteredStartImmediately(500.millis)
           .flatMap {
             case None =>
-              store
+              val unprocessed = store
                 .createLeases(id, 5)
-                .attempt
-                .collect { case Right(jid) => jid }
+                .evalTap(jobId => Log.info(s"Worker $id is leasing job $jobId"))
+
+              val stolen = store
+                .workSteal(id)
                 .evalTap(jobId =>
-                  scribe.cats.io.info(s"Worker $id is leasing job $jobId")
+                  Log.info(s"Worker $id is stealing old job $jobId")
                 )
+
+              (unprocessed ++ stolen).attempt
+                .collect { case Right(jid) => jid }
                 .evalMap(q.offer)
+
             case Some(jobId) =>
               fs2.Stream.eval {
-                scribe.cats.io.info(s"Processing $jobId") *>
+                Log.info(s"Processing $jobId") *>
                   store
                     .complete(jobId)
                     .handleErrorWith(exc =>
-                      scribe.cats.io.error(s"Failed to complete $jobId", exc)
+                      Log.error(s"Failed to complete $jobId", exc)
                     ) *>
                   store
                     .removeLease(id, jobId)
                     .handleErrorWith(exc =>
-                      scribe.cats.io.error(
+                      Log.error(
                         s"Failed to remove lease for job $jobId, held by worker $id",
                         exc
                       )
