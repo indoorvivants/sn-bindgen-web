@@ -45,7 +45,7 @@ object app extends snunit.Http4sApp:
               submitter(queue, store).compile.drain.background *>
               orderingRefresh(ref, store).compile.drain.background *>
               SimpleRestJsonBuilder
-                .routes(JobServiceImpl(queue, store))
+                .routes(JobServiceImpl(queue, ref, store))
                 .resource
                 .map(_.orNotFound)
           }
@@ -80,13 +80,25 @@ end app
 
 class JobServiceImpl(
     submissionQueue: Queue[IO, (BindingSpec, Deferred[IO, JobId])],
+    order: Ref[IO, Map[JobId, Int]],
     store: Store
 ) extends JobService[IO]:
-  override def getStatus(id: JobId): IO[GetStatusOutput] = IO {
-    GetStatusOutput(
-      bindgen.web.internal.jobs.Status.FailedCase(Failed(Some("whaaaat")))
-    )
-  }
+  override def getStatus(id: JobId): IO[GetStatusOutput] =
+    store.isCompleted(id).flatMap {
+      case true =>
+        GetStatusOutput(
+          bindgen.web.internal.jobs.Status.CompletedCase(Completed())
+        ).pure[IO]
+      case false =>
+        order.get.map { m =>
+          GetStatusOutput(
+            bindgen.web.internal.jobs.Status
+              .ProcessingCase(
+                bindgen.web.internal.jobs.Processing(remaining = m.get(id))
+              )
+          )
+        }
+    }
 
   override def submit(spec: BindingSpec): IO[SubmitOutput] =
     IO.deferred[JobId].flatMap { latch =>

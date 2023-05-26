@@ -35,9 +35,10 @@ class Worker private (id: WorkerId, store: Store):
 
             case Some(jobId) =>
               fs2.Stream.eval {
-                Log.info(s"Processing $jobId") *>
+                Log.info(s"Processing $jobId (3 seconds)") *>
                   store
                     .complete(jobId)
+                    .delayBy(3.seconds)
                     .handleErrorWith(exc =>
                       Log.error(s"Failed to complete $jobId", exc)
                     ) *>

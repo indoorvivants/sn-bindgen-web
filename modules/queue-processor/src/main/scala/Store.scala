@@ -50,12 +50,14 @@ class Store private (db: Database[IO]):
       jid
     )
 
-  def isCompleted(jid: JobId): IO[Option[JobId]] =
+  def isCompleted(jid: JobId): IO[Boolean] =
     db.option(
-      sql"select id from bindings where completed is not null".query(
-        jobIdCodec
-      )
-    )
+      sql"select id from bindings where completed is not null and id = $jobIdCodec"
+        .query(
+          jobIdCodec
+        ),
+      jid
+    ).map(_.isDefined)
 
   val timeStream = fs2.Stream.eval(IO.realTimeInstant).map(_.getEpochSecond())
 
@@ -87,7 +89,8 @@ class Store private (db: Database[IO]):
             |    l.worker_id is null 
             |    and b.completed is null 
             |  limit ${integer} 
-            |returning binding_id;""".stripMargin.query(jobIdCodec),
+            |returning binding_id;
+          """.stripMargin.query(jobIdCodec),
           (workerId, inst, limit),
           limit.min(100)
         )
@@ -96,12 +99,13 @@ class Store private (db: Database[IO]):
   def getOrdering(): IO[Map[JobId.Type, Int]] =
     db.stream(
       sql"""
-     |select 
-     |  id, row_number() over (order by added) 
-     |from 
-     |  bindings 
-     |where 
-     |  completed is null;""".stripMargin.query(
+         |select 
+         |  id, row_number() over (order by added) 
+         |from 
+         |  bindings 
+         |where 
+         |  completed is null;
+         """.stripMargin.query(
         jobIdCodec.product(integer.imap(_.toInt)(_.toLong))
       ),
       (),
@@ -118,10 +122,10 @@ class Store private (db: Database[IO]):
       ).mapN(Job.apply)
 
     db.option(
-      sql"select id, header_code from bindings where id = $text".query(
+      sql"select id, header_code from bindings where id = $jobIdCodec".query(
         jobCodec
       ),
-      (id.value.toString)
+      id
     )
   end getSpec
 
