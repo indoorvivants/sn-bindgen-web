@@ -60,13 +60,16 @@ class Store private (db: Database[IO]):
   val timeStream = fs2.Stream.eval(IO.realTimeInstant).map(_.getEpochSecond())
 
   def workSteal(workerId: WorkerId): fs2.Stream[IO, JobId] =
-    val q = sql"""
-    | update leases set worker_id = $workerIdCodec where binding_id 
-    |  in (select binding_id from leases where ($integer - checked_in_at > 60) limit 5)
-    |  returning binding_id
-    """.stripMargin.query(jobIdCodec)
     timeStream.flatMap { instant =>
-      db.stream(q, (workerId, instant), 1024)
+      db.stream(
+        sql"""
+        | update leases set worker_id = $workerIdCodec where binding_id 
+        |  in (select binding_id from leases where ($integer - checked_in_at > 60) limit 5)
+        |  returning binding_id
+        """.stripMargin.query(jobIdCodec),
+        (workerId, instant),
+        1024
+      )
     }
   end workSteal
 

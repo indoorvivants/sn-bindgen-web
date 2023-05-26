@@ -20,15 +20,6 @@ import scala.concurrent.duration.*
 import cats.effect.std.Env
 
 object app extends snunit.Http4sApp:
-  scribe.Logger.root
-    .clearHandlers()
-    .withHandler(
-      writer = scribe.writer.SystemErrWriter,
-      outputFormat = scribe.output.format.ANSIOutputFormat
-    )
-    .withMinimumLevel(scribe.Level.Debug)
-    .replace()
-
   def routes =
     Queue
       .bounded[IO, (BindingSpec, Deferred[IO, JobId])](1024)

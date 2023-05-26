@@ -15,15 +15,6 @@ import bindgen.web.internal.jobs.JobServiceGen
 import bindgen.web.api.SubmitOutput
 
 object app extends snunit.Http4sApp:
-  scribe.Logger.root
-    .clearHandlers()
-    .withHandler(
-      writer = scribe.writer.SystemErrWriter,
-      outputFormat = scribe.output.format.ANSIOutputFormat
-    )
-    .withMinimumLevel(scribe.Level.Debug)
-    .replace()
-
   def routes =
     val service = Env[IO].get("WORKER_HOST").toResource.flatMap {
       case Some(host) =>
