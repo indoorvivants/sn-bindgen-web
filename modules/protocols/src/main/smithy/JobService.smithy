@@ -2,6 +2,7 @@ $version: "2"
 namespace bindgen.web.internal.jobs
 
 use alloy#simpleRestJson
+use bindgen.web.domain#Status
 use bindgen.web.domain#JobId
 use bindgen.web.domain#BindingSpec
 use bindgen.web.domain#GeneratedBinding
@@ -56,21 +57,4 @@ operation GetStatus {
   }
 }
 
-
-union Status {
-  processing: Processing
-  failed: Failed
-  completed: Completed
-
-}
-
-structure Completed{}
-
-structure Processing {
-  remaining: Integer
-}
-
-structure Failed {
-  message: String
-}
 

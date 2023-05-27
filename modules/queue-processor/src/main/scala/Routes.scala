@@ -19,6 +19,7 @@ import cats.syntax.all.*
 import scala.concurrent.duration.*
 import cats.effect.std.Env
 import cats.data.Kleisli
+import bindgen.web.domain.Completed
 
 object app extends snunit.Http4sApp:
   def handleErrors(routes: HttpRoutes[IO]) =
@@ -96,14 +97,14 @@ class JobServiceImpl(
     store.isCompleted(id).flatMap {
       case true =>
         GetStatusOutput(
-          bindgen.web.internal.jobs.Status.CompletedCase(Completed())
+          bindgen.web.domain.Status.CompletedCase(Completed())
         ).pure[IO]
       case false =>
         order.get.map { m =>
           GetStatusOutput(
-            bindgen.web.internal.jobs.Status
+            bindgen.web.domain.Status
               .ProcessingCase(
-                bindgen.web.internal.jobs.Processing(remaining = m.get(id))
+                bindgen.web.domain.Processing(remaining = m.get(id))
               )
           )
         }

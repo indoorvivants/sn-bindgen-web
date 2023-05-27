@@ -101,7 +101,7 @@ class Worker private (id: WorkerId, store: Store):
             IO.raiseError(new RuntimeException(modified.toString))
           case Right(config) =>
             given Config = config.copy(minLogPriority =
-              MinLogPriority(LogLevel.priority(LogLevel.trace))
+              MinLogPriority(LogLevel.priority(LogLevel.warning))
             )
 
             def run(lang: Lang) =
