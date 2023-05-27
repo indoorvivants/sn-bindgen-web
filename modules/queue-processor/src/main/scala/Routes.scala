@@ -89,6 +89,9 @@ class JobServiceImpl(
     order: Ref[IO, Map[JobId, Int]],
     store: Store
 ) extends JobService[IO]:
+  override def getBinding(id: JobId): IO[GeneratedBinding] =
+    store.getBinding(id)
+
   override def getStatus(id: JobId): IO[GetStatusOutput] =
     store.isCompleted(id).flatMap {
       case true =>
