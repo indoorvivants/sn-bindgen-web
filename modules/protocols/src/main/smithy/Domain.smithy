@@ -13,17 +13,26 @@ structure BindingSpec {
     headerCode: HeaderCode
 
     @required
-    name: PackageName
+    packageName: PackageName
 
     clangFlags: ClangFlags
 }
 
 structure GeneratedBinding {
+  @required
+  spec: BindingSpec
+
+  code: GeneratedCode
+
+  errors: ClangErrors
+}
+
+structure GeneratedCode {
   @required 
   scalaCode: ScalaCode
 
   glueCode: GlueCode
-  
+
 }
 
 string PackageName
@@ -33,6 +42,18 @@ string ScalaCode
 
 list ClangFlags {
   member: String
+}
+
+list ClangErrors {
+  member: ClangError
+}
+
+structure ClangError {
+  @required
+  severity: String
+
+  @required
+  message: String
 }
 
 union Status {
