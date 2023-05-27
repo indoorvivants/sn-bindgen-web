@@ -35,7 +35,9 @@ lazy val frontend =
     .defaultAxes((isScala3 ++ isJS)*)
     .jsPlatform(Seq(V.Scala))
     .settings(
+      scalaJSUseMainModuleInitializer := true,
       libraryDependencies ++= Seq(
+        "org.http4s"   %%% "http4s-dom"                  % "0.2.7",
         "com.raquo"    %%% "laminar"                     % V.laminar,
         "org.scala-js" %%% "scala-js-macrotask-executor" % V.macroTaskExecutor
       )
@@ -234,9 +236,18 @@ buildApp := {
   locally { buildFrontend.value }
 }
 
+lazy val frontendFile = taskKey[File]("")
+frontendFile := Def.taskIf {
+  if (sys.env.get("CI").isDefined)
+    (frontend.js(V.Scala) / Compile / fullLinkJSOutput).value
+  else
+    (frontend.js(V.Scala) / Compile / fastLinkJSOutput).value
+
+}.value
+
 lazy val buildFrontend = taskKey[Unit]("")
 buildFrontend := {
-  // val js = frontendFile.value
+  val js        = frontendFile.value / "main.js"
   val buildPath = ((ThisBuild / baseDirectory).value / "build")
   val staticPath =
     new File(
@@ -264,7 +275,7 @@ buildFrontend := {
     """.stripMargin
   )
 
-  // IO.copyFile(js, destination / "frontend.js")
+  IO.copyFile(js, destination / "frontend.js")
 }
 
 val buildWorker = taskKey[Unit]("")
@@ -354,6 +365,7 @@ updateUnitConfiguration := {
 lazy val writeConfig = taskKey[File]("")
 writeConfig := {
   val buildPath          = ((ThisBuild / baseDirectory).value / "build")
+  val defaultStaticPath  = buildPath / "static"
   val defaultStoragePath = ((ThisBuild / baseDirectory).value / "data")
   IO.createDirectory(defaultStoragePath)
 
@@ -373,7 +385,7 @@ writeConfig := {
     )
   val staticPath =
     new File(
-      sys.env.getOrElse("BINDGEN_WEB_STATIC_PATH", buildPath.toString)
+      sys.env.getOrElse("BINDGEN_WEB_STATIC_PATH", defaultStaticPath.toString)
     )
   val storagePath =
     new File(
@@ -459,8 +471,8 @@ def llvmFolder(clangPath: java.nio.file.Path): LLVMInfo = {
       )
     case Linux | Windows =>
       // <llvm-path>/bin/clang
-      val realPath = clangPath.toRealPath()
-      val binFolder = realPath.getParent()
+      val realPath   = clangPath.toRealPath()
+      val binFolder  = realPath.getParent()
       val llvmFolder = binFolder.getParent()
 
       if (llvmFolder.toFile.exists())
