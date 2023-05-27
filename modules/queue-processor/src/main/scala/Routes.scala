@@ -18,8 +18,14 @@ import scala.scalanative.runtime.libc
 import cats.syntax.all.*
 import scala.concurrent.duration.*
 import cats.effect.std.Env
+import cats.data.Kleisli
 
 object app extends snunit.Http4sApp:
+  def handleErrors(routes: HttpRoutes[IO]) =
+    routes.orNotFound.onError { exc =>
+      Kleisli(request => Log.error("Request failed", request.toString, exc))
+    }
+
   def routes =
     Queue
       .bounded[IO, (BindingSpec, Deferred[IO, JobId])](1024)
@@ -47,7 +53,7 @@ object app extends snunit.Http4sApp:
               SimpleRestJsonBuilder
                 .routes(JobServiceImpl(queue, ref, store))
                 .resource
-                .map(_.orNotFound)
+                .map(handleErrors)
           }
         }
       }
