@@ -51,4 +51,14 @@ structure Failed {
   message: String
 }
 
+@error("client")
+@httpError(404)
+structure BindingNotFound {}
 
+@error("client")
+@httpError(404)
+structure BindingNotReady {}
+
+@error("server")
+@httpError(500)
+structure BindingCodeNotFound {}

@@ -6,6 +6,9 @@ use alloy#uuidFormat
 use bindgen.web.domain#JobId
 use bindgen.web.domain#BindingSpec
 use bindgen.web.domain#GeneratedBinding
+use bindgen.web.domain#BindingNotReady
+use bindgen.web.domain#BindingNotFound
+use bindgen.web.domain#BindingCodeNotFound
 use bindgen.web.domain#Status
 
 @simpleRestJson
@@ -50,6 +53,7 @@ operation GetBinding {
   }
 
   output: GeneratedBinding 
+  errors: [BindingNotReady, BindingNotFound, BindingCodeNotFound]
 }
 
 
