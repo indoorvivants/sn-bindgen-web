@@ -46,42 +46,24 @@ class StoreImpl(db: Database[IO]) extends Store:
       code: Either[GeneratedCode, ClangErrors]
   ): IO[Unit] =
     IO.realTimeInstant.map(_.getEpochSecond()).flatMap { instant =>
-      val complete =
-        db.execute(
-          sql"update bindings set completed = $integer where id = ${C.jobId};".command,
-          (instant, id)
-        )
       code match
         case Left(code) =>
+          val complete =
+            db.execute(
+              sql"update bindings set completed = $integer where id = ${C.jobId};".command,
+              (instant, id)
+            )
           val setCode = db.execute(
             sql"insert into generated_code (binding_id, scala_code, glue_code) values (${C.jobId}, ${C.scalaCode}, ${C.glueCode.opt});".command,
             (id, code.scalaCode, code.glueCode)
           )
 
-          setCode *> complete
+          db.transact(setCode *> complete)
 
-        // TODO: https://github.com/armanbilge/porcupine/issues/30
-        // The below version is atomic
-
-        // db.execute(
-        //   sql"""
-        //   | begin transaction;
-        //   | update bindings set completed = $integer where id = ${C.jobId};
-        //   | insert into generated_code (binding_id, scala_code, glue_code) values (${text}, ${C.scalaCode}, ${C.glueCode.opt});
-        //   | commit;
-        //   """.stripMargin.command,
-        //   (
-        //     instant,
-        //     id,
-        //     id,
-        //     code.scalaCode,
-        //     code.glueCode
-        //   )
-        // )
         case Right(value) =>
           Log.error(
             "The logic for completing with errors is not implemented yet"
-          ) *> complete
+          )
       end match
 
     }
@@ -114,6 +96,16 @@ class StoreImpl(db: Database[IO]) extends Store:
       )
     }
   end workSteal
+
+  extension (db: Database[IO])
+    def transact[A](a: IO[A]) =
+      import Outcome.*
+      db.execute(sql"begin transaction".command) *>
+        a.guaranteeCase {
+          case Succeeded(_) => db.execute(sql"commit".command)
+          case _            => db.execute(sql"rollback".command)
+
+        }
 
   override def createLeases(
       workerId: WorkerId,
