@@ -19,6 +19,7 @@ trait Store:
   def getOrdering(): IO[Map[JobId.Type, Int]]
   def record(spec: BindingSpec): IO[JobId]
   def getBinding(id: JobId): IO[GeneratedBinding]
+  def getNoncompleteSpec(id: JobId): IO[Option[BindingSpec]]
 end Store
 
 case class Job(id: JobId, spec: BindingSpec)
@@ -148,6 +149,13 @@ class StoreImpl(db: Database[IO]) extends Store:
     ).compile
       .toVector
       .map(_.toMap)
+
+  override def getNoncompleteSpec(id: JobId): IO[Option[BindingSpec]] =
+    db.option(
+      sql"select header_code, package_name, null from bindings where id = ${C.jobId} and completed is null"
+        .query(C.bindingSpec),
+      id
+    )
 
   override def getBinding(id: JobId): IO[GeneratedBinding] =
     val getCode = db.option(

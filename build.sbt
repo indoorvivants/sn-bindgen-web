@@ -1,7 +1,7 @@
 import scala.scalanative.build.Mode
 
 val V = new {
-  val Scala = "3.2.2"
+  val Scala = "3.3.0"
 
   val snunit = "0.5.4"
 
@@ -79,23 +79,14 @@ lazy val `http-server` =
       vcpkgSettings
     )
 
-lazy val `queue-processor` =
+lazy val bindings =
   projectMatrix
-    .in(file("modules/queue-processor"))
-    .dependsOn(protocols)
+    .in(file("modules/bindings"))
     .defaultAxes((isScala3 ++ isNative)*)
     .nativePlatform(Seq(V.Scala))
     .enablePlugins(ScalaNativePlugin, VcpkgNativePlugin, BindgenPlugin)
     .settings(
       vcpkgSettings,
-      libraryDependencies += "io.circe" %%% "circe-parser" % V.circe,
-      libraryDependencies += "com.indoorvivants" %%% "opaque-newtypes" % V.opaqueNewtypes, // SBT
-      libraryDependencies += "com.github.lolgab" %%% "snunit-http4s0.23" % V.snunit,
-      libraryDependencies += "com.github.lolgab" %%% "scala-native-crypto" % V.snCrypto,
-      libraryDependencies += "com.outr"       %%% "scribe-cats" % V.scribe,
-      libraryDependencies += "org.http4s"     %%% "http4s-dsl"  % V.http4s,
-      libraryDependencies += "com.armanbilge" %%% "porcupine"   % V.porcupine,
-      nativeConfig ~= { _.withIncrementalCompilation(true) },
       bindgenMode := bindgen.plugin.BindgenMode.Manual(
         scalaDir = sourceDirectory.value / "main" / "scala" / "generated",
         cDir =
@@ -126,6 +117,28 @@ lazy val `queue-processor` =
             .build
         )
       }
+    )
+
+lazy val `queue-processor` =
+  projectMatrix
+    .in(file("modules/queue-processor"))
+    .dependsOn(protocols, bindings)
+    .defaultAxes((isScala3 ++ isNative)*)
+    .nativePlatform(Seq(V.Scala))
+    .enablePlugins(ScalaNativePlugin, VcpkgNativePlugin)
+    .settings(
+      vcpkgSettings,
+      libraryDependencies += ("com.indoorvivants" % "bindgen_native0.4_3" % "0.0.17")
+        .classifier(""),
+      libraryDependencies += "io.circe" %%% "circe-parser" % V.circe,
+      libraryDependencies += "com.indoorvivants" %%% "opaque-newtypes" % V.opaqueNewtypes, // SBT
+      libraryDependencies += "com.github.lolgab" %%% "snunit-http4s0.23" % V.snunit,
+      libraryDependencies += "com.github.lolgab" %%% "scala-native-crypto" % V.snCrypto,
+      libraryDependencies += "com.outr"       %%% "scribe-cats" % V.scribe,
+      libraryDependencies += "org.http4s"     %%% "http4s-dsl"  % V.http4s,
+      libraryDependencies += "com.armanbilge" %%% "porcupine"   % V.porcupine,
+      nativeConfig ~= { _.withIncrementalCompilation(true) },
+      nativeConfig ~= usesLibClang
     )
 
 def unitConfig(
@@ -381,3 +394,81 @@ writeConfig := {
 }
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
+
+import scala.scalanative.build.NativeConfig
+import com.indoorvivants.detective.Platform
+
+import java.nio.file.Paths
+
+def usesLibClang(conf: NativeConfig) = {
+  val libraryName =
+    if (Platform.os == Platform.OS.Windows) "libclang" else "clang"
+
+  val detected = llvmFolder(conf.clang.toAbsolutePath())
+
+  val arm64 =
+    if (Platform.arch == Platform.Arch.Arm) Seq("-arch", "arm64") else Seq.empty
+
+  conf
+    .withLinkingOptions(
+      conf.linkingOptions ++
+        Seq("-l" + libraryName) ++
+        detected.llvmLib.map("-L" + _) ++ arm64
+    )
+    .withCompileOptions(
+      conf.compileOptions ++ detected.llvmInclude.map("-I" + _) ++ arm64
+    )
+}
+
+def llvmFolder(clangPath: java.nio.file.Path): LLVMInfo = {
+  import Platform.OS.*
+
+  Platform.os match {
+    case MacOS =>
+      val detected =
+        sys.env
+          .get("LLVM_BIN")
+          .map(Paths.get(_))
+          .map(_.getParent)
+          .filter(_.toFile.exists)
+          .toList
+
+      val speculative =
+        if (detected.isEmpty)
+          List(
+            Paths.get("/usr/local/opt/llvm@14"),
+            Paths.get("/usr/local/opt/llvm"),
+            Paths.get("/opt/homebrew/opt/llvm@14"),
+            Paths.get("/opt/homebrew/opt/llvm")
+          )
+        else Nil
+
+      val all = (detected ++ speculative).dropWhile(!_.toFile.exists())
+
+      val includes = all
+        .map(_.resolve("include"))
+        .map(_.toAbsolutePath().toString)
+
+      val lib = all
+        .map(_.resolve("lib"))
+        .map(_.toAbsolutePath().toString)
+
+      LLVMInfo(
+        llvmInclude = includes,
+        llvmLib = lib
+      )
+    case Linux | Windows =>
+      // <llvm-path>/bin/clang
+      val realPath = clangPath.toRealPath()
+      val binFolder = realPath.getParent()
+      val llvmFolder = binFolder.getParent()
+
+      if (llvmFolder.toFile.exists())
+        LLVMInfo(
+          llvmInclude = List(llvmFolder.resolve("include").toString),
+          llvmLib = List(llvmFolder.resolve("lib").toString)
+        )
+      else LLVMInfo(Nil, Nil)
+    case _ => LLVMInfo(Nil, Nil)
+  }
+}

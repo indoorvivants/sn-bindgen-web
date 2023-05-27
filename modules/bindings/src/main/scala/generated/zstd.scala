@@ -883,18 +883,18 @@ object functions:
   
    * [bindgen] header: /Users/velvetbaldmime/Library/Caches/sbt-vcpkg/vcpkg/packages/zstd_arm64-osx/include/zstd.h
   */
-  def ZSTD_cParam_getBounds(cParam : ZSTD_cParameter)(__return : Ptr[ZSTD_bounds]): Unit = 
-    __sn_wrap_zstd_ZSTD_cParam_getBounds(cParam, __return)
+  def ZSTD_cParam_getBounds(cParam : ZSTD_cParameter)(using Zone): ZSTD_bounds = 
+    val __ptr_0: Ptr[ZSTD_bounds] = alloc[ZSTD_bounds](1)
+    __sn_wrap_zstd_ZSTD_cParam_getBounds(cParam, (__ptr_0 + 0))
+    !(__ptr_0 + 0)
 
   /**
    * ZSTD_cParam_getBounds() : All parameters must belong to an interval with lower and upper bounds, otherwise they will either trigger an error or be automatically clamped.
   
    * [bindgen] header: /Users/velvetbaldmime/Library/Caches/sbt-vcpkg/vcpkg/packages/zstd_arm64-osx/include/zstd.h
   */
-  def ZSTD_cParam_getBounds(cParam : ZSTD_cParameter)(using Zone): ZSTD_bounds = 
-    val __ptr_0: Ptr[ZSTD_bounds] = alloc[ZSTD_bounds](1)
-    __sn_wrap_zstd_ZSTD_cParam_getBounds(cParam, (__ptr_0 + 0))
-    !(__ptr_0 + 0)
+  def ZSTD_cParam_getBounds(cParam : ZSTD_cParameter)(__return : Ptr[ZSTD_bounds]): Unit = 
+    __sn_wrap_zstd_ZSTD_cParam_getBounds(cParam, __return)
 
   /**
    * ZSTD_dParam_getBounds() : All parameters must belong to an interval with lower and upper bounds, otherwise they will either trigger an error or be automatically clamped.

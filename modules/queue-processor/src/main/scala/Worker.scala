@@ -4,9 +4,12 @@ import java.util.UUID
 import opaque_newtypes.TotalWrapper
 import cats.effect.std.*
 import cats.effect.*
+import cats.syntax.all.*
 import bindgen.web.domain.JobId
 import concurrent.duration.*
 import bindgen.web.domain.*
+import fs2.io.file.Files
+import bindgen.rendering.RenderedOutput
 
 opaque type WorkerId = UUID
 object WorkerId extends TotalWrapper[WorkerId, UUID]
@@ -36,21 +39,10 @@ class Worker private (id: WorkerId, store: Store):
 
             case Some(jobId) =>
               fs2.Stream.eval {
-                Log.info(s"Processing $jobId (3 seconds)") *>
-                  store
-                    .complete(
-                      jobId,
-                      Left(
-                        GeneratedCode(
-                          ScalaCode(s"HELLO $jobId!"),
-                          Some(GlueCode("HELLO again! $jobId"))
-                        )
-                      )
-                    )
-                    .delayBy(3.seconds)
-                    .handleErrorWith(exc =>
-                      Log.error(s"Failed to complete $jobId", exc)
-                    ) *>
+                Log.info(s"Processing $jobId") *>
+                  handle(jobId).handleErrorWith(exc =>
+                    Log.error(s"Failed during handling of job $jobId", exc)
+                  ) *>
                   store
                     .removeLease(id, jobId)
                     .handleErrorWith(exc =>
@@ -65,6 +57,81 @@ class Worker private (id: WorkerId, store: Store):
 
       normalProcess.compile.drain.background
     }
+
+  def handle(jobId: JobId) =
+    store.getNoncompleteSpec(jobId).flatMap {
+      case None =>
+        Log.error(
+          s"Job $jobId was scheduled but is not found in the database in incomplete state"
+        )
+      case Some(spec) =>
+        generate(spec.packageName, spec.headerCode).flatMap { gc =>
+          store
+            .complete(
+              jobId,
+              Left(
+                gc
+              )
+            )
+        }
+
+    }
+
+  def generate(packageName: PackageName, code: HeaderCode) =
+    import bindgen.*
+    ZoneResource.useI {
+      Files[IO].tempFile(None, "", ".h", None).use { path =>
+        val wr =
+          fs2.Stream
+            .emit(code.value)
+            .covary[IO]
+            .through(Files[IO].writeUtf8(path))
+            .compile
+            .drain
+
+        val parsed = CLI.command.parse(
+          Seq("--package", packageName.value, "--header", path.toString)
+        )
+
+        parsed match
+          case Left(help) =>
+            val (modified, code) =
+              if help.errors.nonEmpty then help.copy(body = Nil) -> -1
+              else help                                          -> 0
+            IO.raiseError(new RuntimeException(modified.toString))
+          case Right(config) =>
+            given Config = config.copy(minLogPriority =
+              MinLogPriority(LogLevel.priority(LogLevel.trace))
+            )
+
+            def run(lang: Lang) =
+              IO(
+                bindgen.rendering.binding(
+                  analyse(path.toString),
+                  lang,
+                  OutputMode.StdOut
+                )
+              )
+
+            val scalaResult =
+              run(Lang.Scala).map { case RenderedOutput.Single(lb) =>
+                ScalaCode(lb.result)
+              }
+
+            val cResult =
+              run(Lang.C).map { case RenderedOutput.Single(lb) =>
+                val res = lb.result
+                Option.when(res.nonEmpty)(GlueCode(res))
+              }
+
+            val result = (scalaResult, cResult).mapN(GeneratedCode.apply)
+
+            wr *> result
+        end match
+      }
+    }
+  end generate
+
 end Worker
 
 object Worker:
