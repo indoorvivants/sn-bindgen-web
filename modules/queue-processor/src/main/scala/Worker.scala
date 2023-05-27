@@ -6,6 +6,7 @@ import cats.effect.std.*
 import cats.effect.*
 import bindgen.web.domain.JobId
 import concurrent.duration.*
+import bindgen.web.domain.*
 
 opaque type WorkerId = UUID
 object WorkerId extends TotalWrapper[WorkerId, UUID]
@@ -37,7 +38,15 @@ class Worker private (id: WorkerId, store: Store):
               fs2.Stream.eval {
                 Log.info(s"Processing $jobId (3 seconds)") *>
                   store
-                    .complete(jobId)
+                    .complete(
+                      jobId,
+                      Left(
+                        GeneratedCode(
+                          ScalaCode(s"HELLO $jobId!"),
+                          Some(GlueCode("HELLO again! $jobId"))
+                        )
+                      )
+                    )
                     .delayBy(3.seconds)
                     .handleErrorWith(exc =>
                       Log.error(s"Failed to complete $jobId", exc)
