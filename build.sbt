@@ -20,6 +20,8 @@ val V = new {
   val macroTaskExecutor = "1.1.1"
 
   val laminar = "15.0.1"
+
+  val circe = "0.14.5"
 }
 
 val isScala3 = Seq(VirtualAxis.scalaABIVersion(V.Scala))
@@ -86,6 +88,7 @@ lazy val `queue-processor` =
     .enablePlugins(ScalaNativePlugin, VcpkgNativePlugin, BindgenPlugin)
     .settings(
       vcpkgSettings,
+      libraryDependencies += "io.circe" %%% "circe-parser" % V.circe,
       libraryDependencies += "com.indoorvivants" %%% "opaque-newtypes" % V.opaqueNewtypes, // SBT
       libraryDependencies += "com.github.lolgab" %%% "snunit-http4s0.23" % V.snunit,
       libraryDependencies += "com.github.lolgab" %%% "scala-native-crypto" % V.snCrypto,
