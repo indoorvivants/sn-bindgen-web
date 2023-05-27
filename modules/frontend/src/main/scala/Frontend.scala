@@ -10,6 +10,9 @@ import smithy4s.http4s.SimpleRestJsonBuilder
 import java.util.UUID
 import bindgen.web.domain.*
 import scala.scalajs.js.annotation.JSGlobal
+import bindgen.web.domain.Status.ProcessingCase
+import bindgen.web.domain.Status.FailedCase
+import bindgen.web.domain.Status.CompletedCase
 
 def myApp(api: Api) =
   lazy val splitter = SplitRender[Page, HtmlElement](router.currentPageSignal)
@@ -18,63 +21,83 @@ def myApp(api: Api) =
     }
     .collectStatic(Page.Main) { div("Login page") }
 
+  def renderBinding(gb: GeneratedBinding) =
+    div(
+      h1(
+        code(
+          gb.spec.packageName.value
+        )
+      ),
+      h2("C code"),
+      pre(
+        code(
+          cls := "language-c",
+          onMountCallback(mnt => hljs.highlightElement(mnt.thisNode.ref)),
+          gb.spec.headerCode.value
+        )
+      ),
+      gb.code.map { gc =>
+        div(
+          h2("Scala code"),
+          pre(
+            code(
+              cls := "language-scala",
+              onMountCallback(mnt => hljs.highlightElement(mnt.thisNode.ref)),
+              gc.scalaCode.value
+            )
+          ),
+          gc.glueCode.map { glue =>
+            div(
+              h2("Glue C code"),
+              pre(
+                code(
+                  cls := "language-c",
+                  onMountCallback(mnt =>
+                    hljs.highlightElement(mnt.thisNode.ref)
+                  ),
+                  glue.value
+                )
+              )
+            )
+
+          }
+        )
+      }
+    )
+
   def renderUserPage(userPageSignal: Signal[Page.BindingPage]): Div =
     div(
       "User page ",
       div(
-        child.maybe <-- userPageSignal.flatMap { page =>
+        child <-- userPageSignal.flatMap { page =>
           api
             .signal(
-              _.users.getBinding(page.id)
+              _.users.getStatus(page.id).map(_.status)
             )
-            .map(_.map { gb =>
-              div(
-                h1(
-                  code(
-                    gb.spec.packageName.value
-                  )
-                ),
-                h2("C code"),
-                pre(
-                  code(
-                    cls := "language-c",
-                    onMountCallback(mnt =>
-                      hljs.highlightElement(mnt.thisNode.ref)
-                    ),
-                    gb.spec.headerCode.value
-                  )
-                ),
-                gb.code.map { gc =>
-                  div(
-                    h2("Scala code"),
-                    pre(
-                      code(
-                        cls := "language-scala",
-                        onMountCallback(mnt =>
-                          hljs.highlightElement(mnt.thisNode.ref)
-                        ),
-                        gc.scalaCode.value
-                      )
-                    ),
-                    gc.glueCode.map { glue =>
-                      div(
-                        h2("Glue C code"),
-                        pre(
-                          code(
-                            cls := "language-c",
-                            onMountCallback(mnt =>
-                              hljs.highlightElement(mnt.thisNode.ref)
-                            ),
-                            glue.value
+            .flatMap {
+              case None => Signal.fromValue(i("gimme a minute"))
+              case Some(value) =>
+                value match
+                  case ProcessingCase(processing) =>
+                    Signal.fromValue {
+                      processing.remaining match
+                        case None => b("Binding is still being processed")
+                        case Some(value) =>
+                          b(
+                            s"Binding is being processed, there are $value ahead of it in the queue"
                           )
-                        )
-                      )
-
                     }
-                  )
-                }
-              )
-            })
+
+                  case FailedCase(failed) =>
+                    Signal.fromValue(b(s"Failed: ${failed.message}"))
+                  case CompletedCase(completed) =>
+                    api.signal(_.users.getBinding(page.id)).map {
+                      case None => i("gimme a minute")
+                      case Some(value) =>
+                        renderBinding(value)
+                    }
+
+            }
 
         }
       )
