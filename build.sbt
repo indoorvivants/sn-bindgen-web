@@ -39,6 +39,7 @@ lazy val frontend =
       libraryDependencies ++= Seq(
         "org.http4s"   %%% "http4s-dom"                  % "0.2.7",
         "com.raquo"    %%% "laminar"                     % V.laminar,
+        "com.raquo"    %%% "waypoint"                    % "6.0.0",
         "org.scala-js" %%% "scala-js-macrotask-executor" % V.macroTaskExecutor
       )
     )
@@ -265,6 +266,10 @@ buildFrontend := {
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <meta http-equiv="X-UA-Compatible" content="ie=edge">
+          <link rel="stylesheet"
+          href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
+          <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+          <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/scala.min.js"></script>
           <title>Scala 3 Native bindings generator</title>
         </head>
         <body>
