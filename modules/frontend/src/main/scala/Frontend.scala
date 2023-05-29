@@ -13,53 +13,38 @@ import scala.scalajs.js.annotation.JSGlobal
 import bindgen.web.domain.Status.ProcessingCase
 import bindgen.web.domain.Status.FailedCase
 import bindgen.web.domain.Status.CompletedCase
+import com.raquo.waypoint.SplitRender
 
-def myApp(api: Api) =
+class myApp(api: Api):
   lazy val splitter = SplitRender[Page, HtmlElement](router.currentPageSignal)
     .collectSignal[Page.BindingPage] { userPageSignal =>
       renderUserPage(userPageSignal)
     }
     .collectStatic(Page.Main) { div("Login page") }
 
+  inline def codeBlock(language: String, value: String) =
+    pre(
+      code(
+        cls := s"language-$language m-6 rounded-lg border-fuchsia-50 border-2",
+        onMountCallback(mnt => hljs.highlightElement(mnt.thisNode.ref)),
+        value
+      )
+    )
+
   def renderBinding(gb: GeneratedBinding) =
     div(
-      h1(
-        code(
-          gb.spec.packageName.value
-        )
-      ),
-      h2("C code"),
-      pre(
-        code(
-          cls := "language-c",
-          onMountCallback(mnt => hljs.highlightElement(mnt.thisNode.ref)),
-          gb.spec.headerCode.value
-        )
-      ),
+      cls := "bg-blue-950 font-sans text-white",
+      h2("Original C header", cls := "text-xl font-bold m-6"),
+      codeBlock("c", gb.spec.headerCode.value),
       gb.code.map { gc =>
         div(
-          h2("Scala code"),
-          pre(
-            code(
-              cls := "language-scala",
-              onMountCallback(mnt => hljs.highlightElement(mnt.thisNode.ref)),
-              gc.scalaCode.value
-            )
-          ),
+          h2("Scala code", cls := "text-xl font-bold m-6"),
+          codeBlock("scala", gc.scalaCode.value),
           gc.glueCode.map { glue =>
             div(
               h2("Glue C code"),
-              pre(
-                code(
-                  cls := "language-c",
-                  onMountCallback(mnt =>
-                    hljs.highlightElement(mnt.thisNode.ref)
-                  ),
-                  glue.value
-                )
-              )
+              codeBlock("c", glue.value)
             )
-
           }
         )
       }
@@ -67,45 +52,38 @@ def myApp(api: Api) =
 
   def renderUserPage(userPageSignal: Signal[Page.BindingPage]): Div =
     div(
-      "User page ",
-      div(
-        child <-- userPageSignal.flatMap { page =>
-          api
-            .signal(
-              _.users.getStatus(page.id).map(_.status)
-            )
-            .flatMap {
-              case None => Signal.fromValue(i("gimme a minute"))
-              case Some(value) =>
-                value match
-                  case ProcessingCase(processing) =>
-                    Signal.fromValue {
-                      processing.remaining match
-                        case None => b("Binding is still being processed")
-                        case Some(value) =>
-                          b(
-                            s"Binding is being processed, there are $value ahead of it in the queue"
-                          )
-                    }
-
-                  case FailedCase(failed) =>
-                    Signal.fromValue(b(s"Failed: ${failed.message}"))
-                  case CompletedCase(completed) =>
-                    api.signal(_.users.getBinding(page.id)).map {
-                      case None => i("gimme a minute")
+      child <-- userPageSignal.flatMap { page =>
+        api
+          .signal(
+            _.users.getStatus(page.id).map(_.status)
+          )
+          .flatMap {
+            case None => Signal.fromValue(i("gimme a minute"))
+            case Some(value) =>
+              value match
+                case ProcessingCase(processing) =>
+                  Signal.fromValue {
+                    processing.remaining match
+                      case None => b("Binding is still being processed")
                       case Some(value) =>
-                        renderBinding(value)
-                    }
+                        b(
+                          s"Binding is being processed, there are $value ahead of it in the queue"
+                        )
+                  }
 
-            }
+                case FailedCase(failed) =>
+                  Signal.fromValue(b(s"Failed: ${failed.message}"))
+                case CompletedCase(completed) =>
+                  api.signal(_.users.getBinding(page.id)).map {
+                    case None => i("gimme a minute")
+                    case Some(value) =>
+                      renderBinding(value)
+                  }
 
-        }
-      )
+          }
+
+      }
     )
-
-  div(
-    child <-- splitter.signal
-  )
 end myApp
 
 sealed trait Page extends Product with Serializable
@@ -144,10 +122,14 @@ val router = new Router[Page](
 )
 
 @main def main =
+  val app = myApp(Api.create())
   renderOnDomContentLoaded(
     dom.document.getElementById("appContainer"),
-    myApp(Api.create())
+    div(
+      child <-- app.splitter.signal
+    )
   )
+end main
 
 class Api private (
     val users: BindgenService[IO]

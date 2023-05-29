@@ -1,3 +1,4 @@
+import java.lang
 import scala.scalanative.build.Mode
 
 val V = new {
@@ -250,6 +251,24 @@ lazy val buildFrontend = taskKey[Unit]("")
 buildFrontend := {
   val js        = frontendFile.value / "main.js"
   val buildPath = ((ThisBuild / baseDirectory).value / "build")
+  import com.indoorvivants.yank.*
+  val tailwind =
+    tools.TailwindCSS.bootstrap(tools.TailwindCSS.Config(version = "3.3.2"))
+
+  import scala.sys.process.*
+  val s = streams.value
+
+  val inputCss = s.cacheDirectory / "input.css"
+  if (!inputCss.exists())
+    IO.write(
+      inputCss,
+      """
+        |@tailwind base;
+        |@tailwind components;
+        |@tailwind utilities;
+        """.stripMargin
+    )
+
   val staticPath =
     new File(
       sys.env.getOrElse("BINDGEN_WEB_STATIC_PATH", buildPath.toString)
@@ -267,18 +286,25 @@ buildFrontend := {
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <meta http-equiv="X-UA-Compatible" content="ie=edge">
           <link rel="stylesheet"
-          href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
+          href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/night-owl.min.css">
           <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
           <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/scala.min.js"></script>
+          <link rel="stylesheet" href="/styles.css">
           <title>Scala 3 Native bindings generator</title>
         </head>
-        <body>
+        <body class = "bg-blue-950">
         <div id="appContainer"></div>
         <script src="/frontend.js"></script>
         </body>
       </html>
     """.stripMargin
   )
+  val minify = if (sys.env.contains("CI")) "--minify" else ""
+
+  val css =
+    s"$tailwind -i $inputCss $minify --content ${js},${destination / "index.html"}".!!
+
+  IO.write(destination / "styles.css", css)
 
   IO.copyFile(js, destination / "frontend.js")
 }

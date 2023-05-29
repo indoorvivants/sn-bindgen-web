@@ -8,3 +8,4 @@ addSbtPlugin("com.eed3si9n" % "sbt-projectmatrix" % "0.9.0")
 addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.13.1")
 
 libraryDependencies += "com.indoorvivants.detective" %% "platform" % "0.0.2"
+libraryDependencies += "com.indoorvivants" %% "yank" % "0.0.1"
