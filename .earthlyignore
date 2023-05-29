@@ -16,3 +16,5 @@ build/**
 Earthfile
 build
 .docker-build
+fly.toml
+
