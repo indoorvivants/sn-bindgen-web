@@ -45,6 +45,7 @@ deps:
     # SBT dependencies
     COPY build.sbt /sources
     COPY project/*.sbt /sources/project/
+    COPY project/*.scala /sources/project/
     COPY project/build.properties /sources/project/
     RUN sbt update
 
@@ -69,8 +70,12 @@ app:
     SAVE ARTIFACT build/static /build/static AS LOCAL .docker-build/static
 
     ENV BINDGEN_WEB_HTTP_APP_PATH=/usr/bin/bindgen-web
+    ENV BINDGEN_WEB_WORKER_APP_PATH=/usr/bin/bindgen-worker
     ENV BINDGEN_WEB_STATIC_PATH=/www/static
     ENV BINDGEN_WEB_CONFIG_PATH=build/config.json
+    ENV BINDGEN_WEB_STORAGE_PATH=/var/data/bindgen-web
+
+
     RUN sbt --client writeConfig
     SAVE ARTIFACT build/config.json /build/config.json AS LOCAL .docker-build/config.json
 
@@ -78,6 +83,15 @@ app:
 
 docker:
     FROM +unit
+
+    RUN apt update && apt install -y curl && \
+      # install LLVM and libclang
+      curl -Lo llvm.sh https://apt.llvm.org/llvm.sh && \
+      chmod +x llvm.sh && \
+      apt install -y lsb-release wget software-properties-common gnupg autopoint libtool && \
+      ./llvm.sh 14 && \
+      apt update && \
+      apt install -y zip unzip tar make cmake autoconf ninja-build pkg-config libclang-14-dev git
 
     ARG ver=latest
 
@@ -90,7 +104,10 @@ docker:
     RUN chown -R unit /usr/bin/bindgen-worker && chmod +x /usr/bin/bindgen-worker && chmod 0777 /usr/bin/bindgen-worker
     RUN chown -R unit /www/static
 
+    ENV LLVM_BIN=/usr/lib/llvm-14/bin
+
     RUN ldd /usr/bin/bindgen-web || echo "runnable"
+    RUN mkdir -p /var/data/bindgen-web && chown -R unit /var/data/bindgen-web
 
     EXPOSE 9999
     CMD ["unitd", "--no-daemon", "--control", "unix:/var/run/control.unit.sock", "--log", "/dev/stderr"]
@@ -109,48 +126,53 @@ smoke-test:
 unit:
   FROM ubuntu:22.04
 
+
   LABEL org.opencontainers.image.title="Unit"
   LABEL org.opencontainers.image.description="Official build of Unit for Docker."
   LABEL org.opencontainers.image.url="https://unit.nginx.org"
   LABEL org.opencontainers.image.source="https://github.com/nginx/unit"
   LABEL org.opencontainers.image.documentation="https://unit.nginx.org/installation/#docker-images"
   LABEL org.opencontainers.image.vendor="NGINX Docker Maintainers <docker-maint@nginx.com>"
-  LABEL org.opencontainers.image.version="1.29.1"
+  LABEL org.opencontainers.image.version="1.30.0"
 
   RUN set -ex \
       && savedAptMark="$(apt-mark showmanual)" \
       && apt-get update \
-      && apt-get install --no-install-recommends --no-install-suggests -y ca-certificates mercurial build-essential libssl-dev libpcre2-dev \
+      && apt-get install --no-install-recommends --no-install-suggests -y ca-certificates mercurial build-essential libssl-dev libpcre2-dev curl pkg-config \
       && mkdir -p /usr/lib/unit/modules /usr/lib/unit/debug-modules \
-      && hg clone -u 1.29.1-1 https://hg.nginx.org/unit \
+      && hg clone -u 1.30.0-1 https://hg.nginx.org/unit \
       && cd unit \
       && NCPU="$(getconf _NPROCESSORS_ONLN)" \
       && DEB_HOST_MULTIARCH="$(dpkg-architecture -q DEB_HOST_MULTIARCH)" \
       && CC_OPT="$(DEB_BUILD_MAINT_OPTIONS="hardening=+all,-pie" DEB_CFLAGS_MAINT_APPEND="-Wp,-D_FORTIFY_SOURCE=2 -fPIC" dpkg-buildflags --get CFLAGS)" \
       && LD_OPT="$(DEB_BUILD_MAINT_OPTIONS="hardening=+all,-pie" DEB_LDFLAGS_MAINT_APPEND="-Wl,--as-needed -pie" dpkg-buildflags --get LDFLAGS)" \
-      && CONFIGURE_ARGS="--prefix=/usr \
-                  --state=/var/lib/unit \
+      && CONFIGURE_ARGS_MODULES="--prefix=/usr \
+                  --statedir=/var/lib/unit \
                   --control=unix:/var/run/control.unit.sock \
                   --pid=/var/run/unit.pid \
                   --log=/var/log/unit.log \
-                  --tmp=/var/tmp \
+                  --tmpdir=/var/tmp \
                   --user=unit \
                   --group=unit \
                   --openssl \
                   --libdir=/usr/lib/$DEB_HOST_MULTIARCH" \
-      && ./configure $CONFIGURE_ARGS --cc-opt="$CC_OPT" --ld-opt="$LD_OPT" --modules=/usr/lib/unit/debug-modules --debug \
+      && CONFIGURE_ARGS="$CONFIGURE_ARGS_MODULES \
+                  --njs" \
+      && make -j $NCPU -C pkg/contrib .njs \
+      && export PKG_CONFIG_PATH=$(pwd)/pkg/contrib/njs/build \
+      && ./configure $CONFIGURE_ARGS --cc-opt="$CC_OPT" --ld-opt="$LD_OPT" --modulesdir=/usr/lib/unit/debug-modules --debug \
       && make -j $NCPU unitd \
-      && install -pm755 build/unitd /usr/sbin/unitd-debug \
+      && install -pm755 build/sbin/unitd /usr/sbin/unitd-debug \
       && make clean \
-      && ./configure $CONFIGURE_ARGS --cc-opt="$CC_OPT" --ld-opt="$LD_OPT" --modules=/usr/lib/unit/modules \
+      && ./configure $CONFIGURE_ARGS --cc-opt="$CC_OPT" --ld-opt="$LD_OPT" --modulesdir=/usr/lib/unit/modules \
       && make -j $NCPU unitd \
-      && install -pm755 build/unitd /usr/sbin/unitd \
+      && install -pm755 build/sbin/unitd /usr/sbin/unitd \
       && make clean \
-      && ./configure $CONFIGURE_ARGS --cc-opt="$CC_OPT" --modules=/usr/lib/unit/debug-modules --debug \
+      && ./configure $CONFIGURE_ARGS_MODULES --cc-opt="$CC_OPT" --modulesdir=/usr/lib/unit/debug-modules --debug \
       && ./configure  \
       && make -j $NCPU version \
       && make clean \
-      && ./configure $CONFIGURE_ARGS --cc-opt="$CC_OPT" --modules=/usr/lib/unit/modules \
+      && ./configure $CONFIGURE_ARGS_MODULES --cc-opt="$CC_OPT" --modulesdir=/usr/lib/unit/modules \
       && ./configure  \
       && make -j $NCPU version \
       && cd \

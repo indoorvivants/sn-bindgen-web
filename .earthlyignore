@@ -14,3 +14,5 @@ project/project
 project/metals.sbt
 build/**
 Earthfile
+build
+.docker-build
