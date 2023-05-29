@@ -9,6 +9,8 @@ use bindgen.web.domain#GeneratedBinding
 use bindgen.web.domain#BindingNotReady
 use bindgen.web.domain#BindingNotFound
 use bindgen.web.domain#BindingCodeNotFound
+use bindgen.web.domain#ValidationError
+use bindgen.web.domain#SubmissionFailed
 
 @simpleRestJson
 service JobService {
@@ -29,18 +31,19 @@ operation GetBinding {
   errors: [BindingNotReady, BindingNotFound, BindingCodeNotFound]
 }
 
-
-
 @http(method: "POST", uri: "/submit", code: 200)
 operation Submit {
   input := {
     @required
     spec: BindingSpec
-  },
+  }
+
   output := {
     @required
     id: JobId
   }
+
+  errors: [ValidationError, SubmissionFailed]
 }
 
 @readonly

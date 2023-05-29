@@ -6,6 +6,7 @@ addSbtPlugin("com.indoorvivants" % "bindgen-sbt-plugin" % "0.0.17")
 addSbtPlugin("com.eed3si9n" % "sbt-projectmatrix" % "0.9.0")
 
 addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.13.1")
+addSbtPlugin("com.timushev.sbt" % "sbt-rewarn" % "0.1.3")
 
 libraryDependencies += "com.indoorvivants.detective" %% "platform" % "0.0.2"
 libraryDependencies += "com.indoorvivants" %% "yank" % "0.0.1"

@@ -65,17 +65,15 @@ class Worker private (id: WorkerId, store: Store):
           s"Job $jobId was scheduled but is not found in the database in incomplete state"
         )
       case Some(spec) =>
-        IO.sleep(2.seconds) *>
-          Log.warn("The sleep delay is still in the code!") *>
-          generate(spec.packageName, spec.headerCode).flatMap { gc =>
-            store
-              .complete(
-                jobId,
-                Left(
-                  gc
-                )
+        generate(spec.packageName, spec.headerCode).flatMap { gc =>
+          store
+            .complete(
+              jobId,
+              Left(
+                gc
               )
-          }
+            )
+        }
 
     }
 
@@ -92,7 +90,13 @@ class Worker private (id: WorkerId, store: Store):
             .drain
 
         val parsed = CLI.command.parse(
-          Seq("--package", packageName.value, "--header", path.toString)
+          Seq(
+            "--package",
+            packageName.value,
+            "--header",
+            path.toString,
+            "--render.no-location"
+          )
         )
 
         parsed match

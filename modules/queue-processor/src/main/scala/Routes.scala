@@ -1,25 +1,19 @@
 package bindgen.web.internal.jobs
 
+import bindgen.web.domain.*
+import cats.data.Kleisli
 import cats.effect.*
+import cats.effect.std.*
+import cats.syntax.all.*
 import org.http4s.*
 import org.http4s.dsl.io.*
 import smithy4s.http4s.SimpleRestJsonBuilder
-import bindgen.web.domain.GeneratedBinding
-import bindgen.web.domain.JobId
-import bindgen.web.domain.HeaderCode
-import bindgen.web.domain.PackageName
-import cats.effect.std.UUIDGen
-import scala.scalanative.unsafe.*
-import scala.scalanative.unsigned.*
-import java.util.UUID
-import cats.effect.std.Queue
-import bindgen.web.domain.BindingSpec
-import scala.scalanative.runtime.libc
-import cats.syntax.all.*
+
 import scala.concurrent.duration.*
-import cats.effect.std.Env
-import cats.data.Kleisli
-import bindgen.web.domain.Completed
+
+enum SubmissionResult:
+  case Ok(id: JobId)
+  case Failed(msg: String)
 
 object app extends snunit.Http4sApp:
   def handleErrors(routes: HttpRoutes[IO]) =
@@ -29,7 +23,7 @@ object app extends snunit.Http4sApp:
 
   def routes =
     Queue
-      .bounded[IO, (BindingSpec, Deferred[IO, JobId])](1024)
+      .bounded[IO, (BindingSpec, Deferred[IO, SubmissionResult])](1024)
       .toResource
       .flatMap { queue =>
         val store = Env[IO].get("DB_PATH").toResource.flatMap {
@@ -60,13 +54,31 @@ object app extends snunit.Http4sApp:
       }
 
   def submitter(
-      submissionQueue: Queue[IO, (BindingSpec, Deferred[IO, JobId])],
+      submissionQueue: Queue[IO, (BindingSpec, Deferred[IO, SubmissionResult])],
       store: Store
   ) =
     fs2.Stream
       .fromQueueUnterminated(submissionQueue)
       .evalMap { (spec, latch) =>
-        store.record(spec).flatMap(latch.complete)
+        store
+          .record(spec)
+          .attempt
+          .flatMap {
+            case Left(err) =>
+              UUIDGen.randomUUID[IO].flatMap { errorId =>
+                Log.error(
+                  s"errorId=${errorId} Failed to record job spec",
+                  err
+                ) *>
+                  latch.complete(
+                    SubmissionResult.Failed(
+                      s"Internal database error, quote this ID to your system administration: $errorId"
+                    )
+                  )
+              }
+
+            case Right(value) => latch.complete(SubmissionResult.Ok(value))
+          }
       }
 
   def orderingRefresh(
@@ -86,7 +98,7 @@ object app extends snunit.Http4sApp:
 end app
 
 class JobServiceImpl(
-    submissionQueue: Queue[IO, (BindingSpec, Deferred[IO, JobId])],
+    submissionQueue: Queue[IO, (BindingSpec, Deferred[IO, SubmissionResult])],
     order: Ref[IO, Map[JobId, Int]],
     store: Store
 ) extends JobService[IO]:
@@ -111,12 +123,35 @@ class JobServiceImpl(
     }
 
   override def submit(spec: BindingSpec): IO[SubmitOutput] =
-    IO.deferred[JobId].flatMap { latch =>
-      (submissionQueue
-        .offer(spec -> latch) *>
-        latch.get.timeout(500.millis))
-        .map(SubmitOutput.apply)
-    }
+    validate(spec) match
+      case None =>
+        IO.deferred[SubmissionResult].flatMap { latch =>
+          (submissionQueue
+            .offer(spec -> latch) *>
+            latch.get.timeoutTo(
+              500.millis,
+              IO.raiseError(
+                SubmissionFailed(Some("Timed out trying to save the job"))
+              )
+            )).flatMap {
+            case SubmissionResult.Ok(id) =>
+              SubmitOutput(id).pure[IO]
+            case SubmissionResult.Failed(msg) =>
+              SubmissionFailed(Some(msg)).raiseError
+          }
+        }
+
+      case Some(err) =>
+        err.raiseError
 
   end submit
+
+  private def validate(spec: BindingSpec): Option[ValidationError] =
+    Option.when(spec.headerCode.value.trim.isEmpty)(
+      ValidationError("Header code cannot be empty")
+    ) orElse
+      Option.when(spec.packageName.value.trim.isEmpty)(
+        ValidationError("Package name cannot be empty")
+      )
+  end validate
 end JobServiceImpl

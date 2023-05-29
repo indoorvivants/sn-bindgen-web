@@ -80,6 +80,7 @@ lazy val `http-server` =
       libraryDependencies += "org.http4s" %%% "http4s-ember-client" % V.http4s,
       libraryDependencies += "com.outr"   %%% "scribe-cats"         % V.scribe,
       nativeConfig ~= { _.withIncrementalCompilation(true) },
+      scalacOptions += "-Wunused:all",
       vcpkgSettings
     )
 
@@ -108,16 +109,6 @@ lazy val bindings =
                 "-I" + configurator.includes("zstd").toString
               )
             )
-            .build,
-          Binding
-            .builder(configurator.includes("sqlite3") / "sqlite3.h", "sqlite3")
-            .withCImports(List("sqlite.h"))
-            .withClangFlags(
-              List(
-                "-I" + configurator.includes("sqlite3").toString,
-                "-fsigned-char"
-              )
-            )
             .build
         )
       }
@@ -142,7 +133,8 @@ lazy val `queue-processor` =
       libraryDependencies += "org.http4s"     %%% "http4s-dsl"  % V.http4s,
       libraryDependencies += "com.armanbilge" %%% "porcupine"   % V.porcupine,
       nativeConfig ~= { _.withIncrementalCompilation(true) },
-      nativeConfig ~= usesLibClang
+      nativeConfig ~= usesLibClang,
+      scalacOptions += "-Wunused:all"
     )
 
 def unitConfig(
@@ -289,12 +281,15 @@ buildFrontend := {
           href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/night-owl.min.css">
           <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
           <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/scala.min.js"></script>
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.45.0/codemirror.min.css">
           <link rel="stylesheet" href="/styles.css">
           <title>Scala 3 Native bindings generator</title>
         </head>
         <body class = "bg-blue-950">
         <div id="appContainer"></div>
         <script src="/frontend.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.45.0/codemirror.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.45.0/mode/clike/clike.js"></script>
         </body>
       </html>
     """.stripMargin
@@ -515,3 +510,12 @@ def llvmFolder(clangPath: java.nio.file.Path): LLVMInfo = {
     case _ => LLVMInfo(Nil, Nil)
   }
 }
+
+
+concurrentRestrictions in Global ++= Seq(
+  Tags.limit(Tags.Test, 1),
+  // By default dependencies of test can be run in parallel, it includeds Scala Native/Scala.js linkers
+  // Limit them to lower memory usage, especially when targetting LLVM
+  Tags.limit(NativeTags.Link, 1),
+  Tags.limit(ScalaJSTags.Link, 1)
+)

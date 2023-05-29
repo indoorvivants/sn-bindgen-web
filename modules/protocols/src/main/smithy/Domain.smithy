@@ -72,6 +72,19 @@ structure Failed {
   message: String
 }
 
+@error("server")
+@httpError(500)
+structure SubmissionFailed {
+  reason: String
+}
+
+@error("client")
+@httpError(400)
+structure ValidationError {
+  @required 
+  message: String
+}
+
 @error("client")
 @httpError(404)
 structure BindingNotFound {}

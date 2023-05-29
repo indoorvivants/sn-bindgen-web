@@ -10,6 +10,8 @@ use bindgen.web.domain#BindingNotReady
 use bindgen.web.domain#BindingNotFound
 use bindgen.web.domain#BindingCodeNotFound
 use bindgen.web.domain#Status
+use bindgen.web.domain#ValidationError
+use bindgen.web.domain#SubmissionFailed
 
 @simpleRestJson
 service BindgenService {
@@ -27,6 +29,8 @@ operation Submit {
     @required
     id: JobId
   }
+
+  errors: [SubmissionFailed, ValidationError]
 }
 
 @readonly
