@@ -15,8 +15,18 @@ use bindgen.web.domain#SubmissionFailed
 @simpleRestJson
 service JobService {
   version: "1.0.0",
-  operations: [Submit, GetStatus, GetBinding]
+  operations: [Submit, GetStatus, GetBinding, Health]
 }
+
+@readonly
+@http(method: "GET", uri: "/health", code: 200)
+operation Health {
+  output := {
+    @required
+    status: String
+  } 
+}
+
 
 @readonly
 @http(method: "GET", uri: "/binding/{id}", code: 200)

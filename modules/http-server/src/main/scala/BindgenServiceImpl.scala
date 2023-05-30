@@ -11,6 +11,12 @@ import bindgen.web.api.SubmitOutput
 
 class BindgenServiceImpl(workerClient: JobService[IO])
     extends BindgenService[IO]:
+
+  override def health(): IO[HealthOutput] =
+    workerClient.health().map { workerHealth =>
+      HealthOutput(status = "ok", workerStatus = workerHealth.status)
+    }
+
   override def getBinding(id: JobId): IO[GeneratedBinding] =
     workerClient.getBinding(id)
   override def getStatus(id: JobId): IO[GetStatusOutput] =
@@ -34,4 +40,3 @@ object BindgenServiceImpl:
       )
       .map(BindgenServiceImpl(_))
 end BindgenServiceImpl
-

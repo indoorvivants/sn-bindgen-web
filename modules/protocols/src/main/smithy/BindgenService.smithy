@@ -16,7 +16,7 @@ use bindgen.web.domain#SubmissionFailed
 @simpleRestJson
 service BindgenService {
   version: "1.0.0",
-  operations: [Submit, GetStatus, GetBinding]
+  operations: [Submit, GetStatus, GetBinding, Health]
 }
 
 @http(method: "POST", uri: "/api/submit", code: 200)
@@ -45,6 +45,18 @@ operation GetStatus {
     @required
     status: Status
   }
+}
+
+@readonly
+@http(method: "GET", uri: "/api/health", code: 200)
+operation Health {
+  output := {
+    @required
+    status: String
+
+    @required 
+    workerStatus: String
+  } 
 }
 
 @readonly
