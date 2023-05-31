@@ -6,9 +6,11 @@
   - [Local development](#local-development)
 <!--toc:end-->
 
-_Warning: unfortunately the app doesn't seem to currently work on Linux x86, which is where I want to deploy it on Fly.io. I've only made the repository public to invite some folks to take a look and see what am I missing._
+_Warning: unfortunately the app doesn't seem to currently work on Linux x86, which is where I want to deploy it on Fly.io. I've only made the repository public to invite some folks to take a look and see what am I missing. The app is very much work in progress, and so is the accompanying blog post._
 
 _For context, what doesn't work is the service started at port 9999 - you can verify that by hitting /api/health in the built container. On the other hand, the other service starts fine - you can verify that by hitting /health endpoint on the service responding at :8888_
+
+![2023-05-29 12 01 15](https://github.com/indoorvivants/sn-bindgen-web/assets/1052965/85d0144c-f431-49e3-a45c-b644fc642cf7)
 
 ### Quick start
 
