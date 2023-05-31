@@ -320,9 +320,6 @@ buildWorker := {
     preserveLastModified = true
   )
 
-  sys.env.get("CI").foreach { _ =>
-    val sudo = if (sys.env.contains("USE_SUDO")) "sudo " else ""
-  }
 }
 
 val buildWeb = taskKey[Unit]("")

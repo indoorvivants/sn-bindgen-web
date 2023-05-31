@@ -6,7 +6,6 @@ import cats.effect.*
 import cats.effect.std.*
 import cats.syntax.all.*
 import org.http4s.*
-import org.http4s.dsl.io.*
 import smithy4s.http4s.SimpleRestJsonBuilder
 
 import scala.concurrent.duration.*

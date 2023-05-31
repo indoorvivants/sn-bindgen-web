@@ -13,9 +13,10 @@ class BindgenServiceImpl(workerClient: JobService[IO])
     extends BindgenService[IO]:
 
   override def health(): IO[HealthOutput] =
-    workerClient.health().map { workerHealth =>
-      HealthOutput(status = "ok", workerStatus = workerHealth.status)
-    }
+    Log.info("Running healthcheck...") *>
+      workerClient.health().map { workerHealth =>
+        HealthOutput(status = "ok", workerStatus = workerHealth.status)
+      }
 
   override def getBinding(id: JobId): IO[GeneratedBinding] =
     workerClient.getBinding(id)
@@ -33,10 +34,14 @@ object BindgenServiceImpl:
       .default[IO]
       .build
       .flatMap(cl =>
+        println(cl)
         SimpleRestJsonBuilder(JobService)
           .client[IO](cl)
           .uri(workerUri)
           .resource
       )
-      .map(BindgenServiceImpl(_))
+      .map(cl =>
+        println(cl)
+        BindgenServiceImpl(cl)
+      )
 end BindgenServiceImpl
