@@ -6,6 +6,10 @@
   - [Local development](#local-development)
 <!--toc:end-->
 
+_Warning: unfortunately the app doesn't seem to currently work on Linux x86, which is where I want to deploy it on Fly.io. I've only made the repository public to invite some folks to take a look and see what am I missing._
+
+_For context, what doesn't work is the service started at port 9999 - you can verify that by hitting /api/health in the built container. On the other hand, the other service starts fine - you can verify that by hitting /health endpoint on the service responding at :8888_
+
 ### Quick start
 
 1. Install [Earthly](https://docs.earthly.dev) 
