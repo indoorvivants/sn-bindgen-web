@@ -102,7 +102,8 @@ class JobServiceImpl(
     store: Store
 ) extends JobService[IO]:
   override def health(): IO[HealthOutput] =
-    IO(HealthOutput("ok"))
+    Log.info("Worker responding to health check") *>
+      IO(HealthOutput("ok"))
   override def getBinding(id: JobId): IO[GeneratedBinding] =
     store.getBinding(id)
 

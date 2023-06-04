@@ -1,4 +1,4 @@
-package bindgen.web
+package bindgen.web.http
 
 import cats.data.Kleisli
 import cats.effect.*
@@ -7,39 +7,47 @@ import cats.syntax.all.*
 import org.http4s.*
 import smithy4s.http4s.SimpleRestJsonBuilder
 
-import api.*
+import bindgen.web.api.*
 
-object app extends snunit.Http4sApp:
-  def routes =
-    println("here")
-    println(sys.env)
-    val service = Env[IO].get("WORKER_HOST").toResource.flatMap {
-      case Some(host) =>
-        println(host)
-        BindgenServiceImpl.create(Uri.unsafeFromString(host))
+object HttpServer extends snunit.Http4sApp:
+  import org.http4s.dsl.io.*
+  final def routes = Log.info("what the fuck is going on").toResource *> IO(
+    HttpRoutes
+      .of[IO] { case req =>
+        Log.info(s"Responding to $req") *> Ok(s"${req.toString}")
+      }
+      .orNotFound
+  ).toResource
 
-      case None =>
-        println("crash baby")
-        IO.raiseError(
-          new java.lang.RuntimeException(
-            "WORKER_HOST environment variable is not set, cannot establish connection to the worker"
-          )
-        ).toResource
-    }
+  // def routes1 =
+  //   Log.unsafe.info("here")
+  //   Log.unsafe.info(sys.env.toString)
+  //   val service = Env[IO].get("WORKER_HOST").toResource.flatMap {
+  //     case Some(host) =>
+  //       Log.unsafe.info(host)
+  //       BindgenServiceImpl.create(Uri.unsafeFromString(host))
 
-    service.flatMap { impl =>
+  //     case None =>
+  //       Log.unsafe.info("crash baby")
+  //       IO.raiseError(
+  //         new java.lang.RuntimeException(
+  //           "WORKER_HOST environment variable is not set, cannot establish connection to the worker"
+  //         )
+  //       ).toResource
+  //   }
 
-      println(impl)
+  //   service.flatMap { impl =>
 
-      def handleErrors(routes: HttpRoutes[IO]) =
-        println(routes)
-        routes.orNotFound.onError { exc =>
-          Kleisli(request => Log.error("Request failed", request.toString, exc))
-        }
-      end handleErrors
+  //     Log.unsafe.info(impl.toString)
 
-      SimpleRestJsonBuilder.routes(impl).resource.map(handleErrors)
-    }
-  end routes
+  //     def handleErrors(routes: HttpRoutes[IO]) =
+  //       Log.unsafe.info(routes.toString)
+  //       routes.orNotFound.onError { exc =>
+  //         Kleisli(request => Log.error("Request failed", request.toString, exc))
+  //       }
+  //     end handleErrors
 
-end app
+  //     SimpleRestJsonBuilder.routes(impl).resource.map(handleErrors)
+  //   }
+  // end routes1
+end HttpServer

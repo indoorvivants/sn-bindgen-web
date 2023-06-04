@@ -1,4 +1,4 @@
-package bindgen.web
+package bindgen.web.http
 
 object Log:
   private lazy val io =
@@ -14,4 +14,6 @@ object Log:
   end io
 
   export io.{debug, info, warn, error}
+
+  lazy val unsafe = scribe.Logger.root
 end Log

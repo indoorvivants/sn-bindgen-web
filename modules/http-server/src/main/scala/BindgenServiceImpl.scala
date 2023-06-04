@@ -1,6 +1,6 @@
-package bindgen.web
+package bindgen.web.http
 
-import api.*
+import bindgen.web.api.*
 import cats.effect.*
 import org.http4s.*
 import smithy4s.http4s.SimpleRestJsonBuilder

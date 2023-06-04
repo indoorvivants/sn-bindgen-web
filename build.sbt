@@ -84,6 +84,29 @@ lazy val `http-server` =
       vcpkgSettings
     )
 
+lazy val `queue-processor` =
+  projectMatrix
+    .in(file("modules/queue-processor"))
+    .dependsOn(protocols, bindings)
+    .defaultAxes((isScala3 ++ isNative)*)
+    .nativePlatform(Seq(V.Scala))
+    .enablePlugins(ScalaNativePlugin, VcpkgNativePlugin)
+    .settings(
+      vcpkgSettings,
+      libraryDependencies += ("com.indoorvivants" % "bindgen_native0.4_3" % "0.0.17")
+        .classifier(""),
+      libraryDependencies += "io.circe" %%% "circe-parser" % V.circe,
+      libraryDependencies += "com.indoorvivants" %%% "opaque-newtypes" % V.opaqueNewtypes, // SBT
+      libraryDependencies += "com.github.lolgab" %%% "snunit-http4s0.23" % V.snunit,
+      libraryDependencies += "com.github.lolgab" %%% "scala-native-crypto" % V.snCrypto,
+      libraryDependencies += "com.outr"       %%% "scribe-cats" % V.scribe,
+      libraryDependencies += "org.http4s"     %%% "http4s-dsl"  % V.http4s,
+      libraryDependencies += "com.armanbilge" %%% "porcupine"   % V.porcupine,
+      nativeConfig ~= { _.withIncrementalCompilation(true) },
+      nativeConfig ~= usesLibClang,
+      scalacOptions += "-Wunused:all"
+    )
+
 lazy val bindings =
   projectMatrix
     .in(file("modules/bindings"))
@@ -112,29 +135,6 @@ lazy val bindings =
             .build
         )
       }
-    )
-
-lazy val `queue-processor` =
-  projectMatrix
-    .in(file("modules/queue-processor"))
-    .dependsOn(protocols, bindings)
-    .defaultAxes((isScala3 ++ isNative)*)
-    .nativePlatform(Seq(V.Scala))
-    .enablePlugins(ScalaNativePlugin, VcpkgNativePlugin)
-    .settings(
-      vcpkgSettings,
-      libraryDependencies += ("com.indoorvivants" % "bindgen_native0.4_3" % "0.0.17")
-        .classifier(""),
-      libraryDependencies += "io.circe" %%% "circe-parser" % V.circe,
-      libraryDependencies += "com.indoorvivants" %%% "opaque-newtypes" % V.opaqueNewtypes, // SBT
-      libraryDependencies += "com.github.lolgab" %%% "snunit-http4s0.23" % V.snunit,
-      libraryDependencies += "com.github.lolgab" %%% "scala-native-crypto" % V.snCrypto,
-      libraryDependencies += "com.outr"       %%% "scribe-cats" % V.scribe,
-      libraryDependencies += "org.http4s"     %%% "http4s-dsl"  % V.http4s,
-      libraryDependencies += "com.armanbilge" %%% "porcupine"   % V.porcupine,
-      nativeConfig ~= { _.withIncrementalCompilation(true) },
-      nativeConfig ~= usesLibClang,
-      scalacOptions += "-Wunused:all"
     )
 
 def unitConfig(
@@ -198,22 +198,17 @@ def unitConfig(
       "executable": "$workerPath",
       "environment": {
         "DB_PATH": "$storagePath/store.db",
-        "FILES_PATH": "$storagePath",
+        "FILES_PATH": "$storagePath"
       }
     },
     "web": {
       "processes": {
-        "max": 10,
-        "idle_timeout": 180
+        "max": 5
       },
       "type": "external",
       "executable": "$webPath",
       "environment": {
         "WORKER_HOST": "http://localhost:8888"
-      },
-      "limits": {
-        "timeout": 1,
-        "requests": 1000
       }
     }
   }
