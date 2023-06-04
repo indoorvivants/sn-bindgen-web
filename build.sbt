@@ -8,7 +8,7 @@ val V = new {
 
   val snCrypto = "0.0.4"
 
-  val http4s = "0.23.18"
+  val http4s = "0.23.19"
 
   val fs2 = "3.6.1"
 
