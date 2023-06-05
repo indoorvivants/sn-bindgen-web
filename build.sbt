@@ -203,17 +203,12 @@ def unitConfig(
     },
     "web": {
       "processes": {
-        "max": 10,
-        "idle_timeout": 180
+        "max": 10
       },
       "type": "external",
       "executable": "$webPath",
       "environment": {
         "WORKER_HOST": "http://localhost:8888"
-      },
-      "limits": {
-        "timeout": 1,
-        "requests": 1000
       }
     }
   }
