@@ -1,37 +1,53 @@
-package bindgen.web
+package bindgen.web.http
 
-import api.*
-
+import cats.data.Kleisli
 import cats.effect.*
-import org.http4s.*
-import org.http4s.dsl.io.*
-import smithy4s.http4s.SimpleRestJsonBuilder
-import bindgen.web.domain.*
-import cats.effect.std.UUIDGen
-import org.http4s.ember.client.EmberClientBuilder
-import bindgen.web.internal.jobs.JobService
 import cats.effect.std.Env
-import bindgen.web.internal.jobs.JobServiceGen
-import bindgen.web.api.SubmitOutput
-import java.nio.file.Paths
+import cats.syntax.all.*
+import org.http4s.*
+import smithy4s.http4s.SimpleRestJsonBuilder
 
-object app extends snunit.Http4sApp:
-  def routes =
-    val service = Env[IO].get("WORKER_HOST").toResource.flatMap {
-      case Some(host) =>
-        BindgenServiceImpl.create(Uri.unsafeFromString(host))
+import bindgen.web.api.*
 
-      case None =>
-        IO.raiseError(
-          new java.lang.RuntimeException(
-            "WORKER_HOST environment variable is not set, cannot establish connection to the worker"
-          )
-        ).toResource
-    }
+object HttpServer extends snunit.Http4sApp:
+  import org.http4s.dsl.io.*
+  final def routes = Log.info("what the fuck is going on").toResource *> IO(
+    HttpRoutes
+      .of[IO] { case req =>
+        Log.info(s"Responding to $req") *> Ok(s"${req.toString}")
+      }
+      .orNotFound
+  ).toResource
 
-    service.flatMap { impl =>
-      SimpleRestJsonBuilder.routes(impl).resource.map(_.orNotFound)
-    }
-  end routes
+  // def routes1 =
+  //   Log.unsafe.info("here")
+  //   Log.unsafe.info(sys.env.toString)
+  //   val service = Env[IO].get("WORKER_HOST").toResource.flatMap {
+  //     case Some(host) =>
+  //       Log.unsafe.info(host)
+  //       BindgenServiceImpl.create(Uri.unsafeFromString(host))
 
-end app
+  //     case None =>
+  //       Log.unsafe.info("crash baby")
+  //       IO.raiseError(
+  //         new java.lang.RuntimeException(
+  //           "WORKER_HOST environment variable is not set, cannot establish connection to the worker"
+  //         )
+  //       ).toResource
+  //   }
+
+  //   service.flatMap { impl =>
+
+  //     Log.unsafe.info(impl.toString)
+
+  //     def handleErrors(routes: HttpRoutes[IO]) =
+  //       Log.unsafe.info(routes.toString)
+  //       routes.orNotFound.onError { exc =>
+  //         Kleisli(request => Log.error("Request failed", request.toString, exc))
+  //       }
+  //     end handleErrors
+
+  //     SimpleRestJsonBuilder.routes(impl).resource.map(handleErrors)
+  //   }
+  // end routes1
+end HttpServer
