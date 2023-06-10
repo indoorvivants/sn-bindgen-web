@@ -4,7 +4,7 @@ import scala.scalanative.build.Mode
 val V = new {
   val Scala = "3.3.0"
 
-  val snunit = "0.5.5"
+  val snunit = "0.7.0"
 
   val snCrypto = "0.0.4"
 
@@ -203,12 +203,17 @@ def unitConfig(
     },
     "web": {
       "processes": {
-        "max": 10
+        "max": 10,
+        "idle_timeout": 180
       },
       "type": "external",
       "executable": "$webPath",
       "environment": {
         "WORKER_HOST": "http://localhost:8888"
+      },
+      "limits": {
+        "timeout": 1,
+        "requests": 1000
       }
     }
   }
