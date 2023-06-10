@@ -89,6 +89,11 @@ class Worker private (id: WorkerId, store: Store):
             .compile
             .drain
 
+        val llvmBin = 
+          sys.env.get("LLVM_BIN").toSeq.flatMap { path =>
+            Seq("--llvm-bin", path)
+          }
+
         val parsed = CLI.command.parse(
           Seq(
             "--package",
@@ -96,7 +101,7 @@ class Worker private (id: WorkerId, store: Store):
             "--header",
             path.toString,
             "--render.no-location"
-          )
+          ) ++ llvmBin
         )
 
         parsed match
