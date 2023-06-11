@@ -191,7 +191,7 @@ def unitConfig(
   "applications": {
     "worker": {
       "processes": {
-        "max": 1,
+        "max": 2,
         "spare": 1
       },
       "type": "external",
@@ -203,7 +203,7 @@ def unitConfig(
     },
     "web": {
       "processes": {
-        "max": 10,
+        "max": 2,
         "idle_timeout": 180
       },
       "type": "external",
@@ -212,8 +212,7 @@ def unitConfig(
         "WORKER_HOST": "http://localhost:8888"
       },
       "limits": {
-        "timeout": 1,
-        "requests": 1000
+        "timeout": 3,
       }
     }
   }
@@ -510,7 +509,6 @@ def llvmFolder(clangPath: java.nio.file.Path): LLVMInfo = {
     case _ => LLVMInfo(Nil, Nil)
   }
 }
-
 
 concurrentRestrictions in Global ++= Seq(
   Tags.limit(Tags.Test, 1),

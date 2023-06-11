@@ -59,7 +59,7 @@ class StoreImpl(db: Database[IO]) extends Store:
             (id, code.scalaCode, code.glueCode)
           )
 
-          db.transact(setCode *> complete)
+          setCode *> complete // note, this is not atomic
 
         case Right(value) =>
           Log.error(
@@ -97,16 +97,6 @@ class StoreImpl(db: Database[IO]) extends Store:
       )
     }
   end workSteal
-
-  extension (db: Database[IO])
-    def transact[A](a: IO[A]) =
-      import Outcome.*
-      db.execute(sql"begin transaction".command) *>
-        a.guaranteeCase {
-          case Succeeded(_) => db.execute(sql"commit".command)
-          case _            => db.execute(sql"rollback".command)
-
-        }
 
   override def createLeases(
       workerId: WorkerId,
