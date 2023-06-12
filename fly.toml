@@ -14,6 +14,10 @@ processes = []
 
 [env]
 
+[mounts]
+  source="sn_bindgen_web_data"
+  destination="/var/data/bindgen-web"
+
 [experimental]
   auto_rollback = true
 
