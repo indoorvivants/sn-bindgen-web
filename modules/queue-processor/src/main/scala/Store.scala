@@ -9,6 +9,8 @@ import scodec.bits.ByteVector
 
 import java.util.UUID
 import scala.scalanative.unsafe.*
+import fs2.io.file.Files
+import fs2.io.file.Path
 
 trait Store:
   def complete(id: JobId, code: Either[GeneratedCode, ClangErrors]): IO[Unit]
@@ -223,11 +225,27 @@ end StoreImpl
 
 object Store:
   def open(filename: String): Resource[cats.effect.IO, Store] =
-    Database
-      .open[IO](filename)
-      .evalTap { db =>
-        val migrations = List(
-          sql"""
+    val path = Path(filename)
+    Files[IO]
+      .exists(path)
+      .flatMap {
+        case true =>
+          Log.info(
+            s"`$filename` file exists, proceeding to just open the database"
+          )
+        case false =>
+          Log.info(
+            s"`$filename` file doesn't exist, creating folder structure for it"
+          ) *>
+            path.parent.traverse(Files[IO].createDirectories)
+
+      }
+      .toResource *>
+      Database
+        .open[IO](filename)
+        .evalTap { db =>
+          val migrations = List(
+            sql"""
            |create table if not exists bindings(
            |  id text primary key not null,
            |  added int not null,
@@ -235,23 +253,23 @@ object Store:
            |  header_code blob not null,
            |  package_name text not null
            |);""".stripMargin,
-          sql"""
+            sql"""
            |create table if not exists generated_code(
            |  binding_id text primary key not null,
            |  scala_code blob not null,
            |  glue_code blob 
            |);""".stripMargin,
-          sql"""
+            sql"""
            |create table if not exists leases(
            |  binding_id text not null,
            |  worker_id text not null,
            |  checked_in_at int not null
            |);
          """.stripMargin
-        )
-        migrations.map(_.command).traverse(db.execute(_))
-      }
-      .map(StoreImpl(_))
+          )
+          migrations.map(_.command).traverse(db.execute(_))
+        }
+        .map(StoreImpl(_))
   end open
 
 end Store
