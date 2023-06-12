@@ -117,7 +117,7 @@ docker:
 
     EXPOSE 9999
     CMD ["/var/launch.sh"]
-    SAVE IMAGE --push keynmol/bindgen-web:$ver
+    SAVE IMAGE keynmol/bindgen-web:$ver
 
 smoke-test:
   FROM earthly/dind:ubuntu
