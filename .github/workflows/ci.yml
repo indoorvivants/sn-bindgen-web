@@ -26,7 +26,12 @@ jobs:
     - name: Dockerhub login
       run: docker login --username "$DOCKERHUB_USERNAME" --password "$DOCKERHUB_TOKEN"
 
-    - name: Run build
+    - name: Run main build
+      if: github.ref == 'refs/heads/main'
+      run: earthly --ci --output --push +docker
+
+    - name: Run PR build
+      if: github.ref != 'refs/heads/main'
       run: earthly --ci --output +docker
 
     - uses: superfly/flyctl-actions/setup-flyctl@master

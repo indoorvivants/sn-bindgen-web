@@ -28,7 +28,7 @@ llvm-base:
       chmod +x /bin/sbt && \
       cd /sources && sbt --sbt-create version
 
-    SAVE IMAGE --push bindgen-web-base:14
+    SAVE IMAGE --push keynmol/bindgen-web-base:14
 
 deps:
     FROM +llvm-base
@@ -50,7 +50,7 @@ deps:
     COPY project/build.properties /sources/project/
     RUN sbt update
 
-    SAVE IMAGE --push bindgen-web-build
+    SAVE IMAGE --push keynmol/bindgen-web-build
 
 app:
     FROM +deps
@@ -80,7 +80,7 @@ app:
     RUN sbt --client writeConfig
     SAVE ARTIFACT build/config.json /build/config.json AS LOCAL .docker-build/config.json
 
-    SAVE IMAGE --push bindgen-web-app
+    SAVE IMAGE --push keynmol/bindgen-web-app:latest
 
 docker:
     FROM +unit
@@ -108,11 +108,10 @@ docker:
     ENV LLVM_BIN=/usr/lib/llvm-14/bin
 
     RUN ldd /usr/bin/bindgen-web || echo "runnable"
-    RUN mkdir -p /var/data/bindgen-web && chown -R unit /var/data/bindgen-web
 
     EXPOSE 9999
     CMD ["unitd", "--no-daemon", "--control", "unix:/var/run/control.unit.sock", "--log", "/dev/stderr"]
-    SAVE IMAGE --push bindgen-web:$ver
+    SAVE IMAGE --push keynmol/bindgen-web:$ver
 
 smoke-test:
   FROM earthly/dind:ubuntu
@@ -206,4 +205,4 @@ unit:
 
   ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
-  SAVE IMAGE --push bindgen-web-unit:latest
+  SAVE IMAGE --push keynmol/bindgen-web-unit:22.04-1.30
