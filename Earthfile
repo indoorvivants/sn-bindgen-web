@@ -65,7 +65,7 @@ app:
     ENV SN_RELEASE $mode
     #ENV CI "true"
 
-    RUN sbt --client 'clean; buildApp'
+    RUN sbt --client buildApp
     SAVE ARTIFACT build/bindgen-web /build/bindgen-web AS LOCAL .docker-build/bindgen-web
     SAVE ARTIFACT build/bindgen-worker /build/bindgen-worker AS LOCAL .docker-build/bindgen-worker
     SAVE ARTIFACT build/static /build/static AS LOCAL .docker-build/static
@@ -84,6 +84,7 @@ app:
 
 docker:
     FROM +unit
+
 
     RUN apt update && apt install -y curl && \
       # install LLVM and libclang
@@ -109,8 +110,13 @@ docker:
 
     RUN ldd /usr/bin/bindgen-web || echo "runnable"
 
+    RUN echo "set -e; mkdir -p /var/data/bindgen-web && chown -R unit /var/data/bindgen-web" >> /var/launch.sh && \
+        echo "/usr/local/bin/docker-entrypoint.sh unitd --no-daemon --control unix:/var/run/control.unit.sock --log /dev/stderr" >> /var/launch.sh && \
+        chmod +x /var/launch.sh
+
+
     EXPOSE 9999
-    CMD ["unitd", "--no-daemon", "--control", "unix:/var/run/control.unit.sock", "--log", "/dev/stderr"]
+    CMD ["/var/launch.sh"]
     SAVE IMAGE --push keynmol/bindgen-web:$ver
 
 smoke-test:
