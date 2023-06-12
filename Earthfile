@@ -23,6 +23,7 @@ llvm-base:
       apt install -y unit-dev    
     # Install and cache SBT
     COPY project/build.properties /sources/project/build.properties
+
     RUN curl -Lo /bin/sbt https://raw.githubusercontent.com/sbt/sbt/1.9.x/sbt && \
       chmod +x /bin/sbt && \
       cd /sources && sbt --sbt-create version
