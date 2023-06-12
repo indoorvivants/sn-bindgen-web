@@ -26,7 +26,7 @@ jobs:
     - name: Dockerhub login
       run: |
         docker login --username "$DOCKERHUB_USERNAME" --password "$DOCKERHUB_TOKEN"
-        docker pull keynmol/sn-bindgen-web:latest || echo "no image found, proceeding.."
+        docker pull keynmol/bindgen-web:latest || echo "no image found, proceeding.."
 
     - name: Run main build
       if: github.ref == 'refs/heads/main'
@@ -39,7 +39,7 @@ jobs:
     - uses: superfly/flyctl-actions/setup-flyctl@master
 
     - name: Deploy to fly.io
-      run: "flyctl deploy -a sn-bindgen-web -i bindgen-web:latest --local-only -c fly.toml"
+      run: "flyctl deploy -a sn-bindgen-web -i keynmol/bindgen-web:latest --local-only -c fly.toml"
       if: startsWith(github.ref, 'refs/tags/v') || (github.ref == 'refs/heads/main')
       env:
         FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
