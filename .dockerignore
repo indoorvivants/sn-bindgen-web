@@ -13,7 +13,7 @@ target
 project/project
 project/metals.sbt
 build/**
-Earthfile
+Dockerfile
 build
 .docker-build
 fly.toml

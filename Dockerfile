@@ -36,6 +36,15 @@ ARG scalanative_lto=thin
 ENV SCALANATIVE_MODE=${scalanative_mode}
 ENV SCALANATIVE_LTO=${scalanative_lto}
 ENV CI=true
+ENV LLVM_BIN=/usr/lib/llvm-14/bin
+
+RUN apt update && apt install -y lsb-release wget software-properties-common gnupg &&\
+  # install LLVM and libclang
+  curl -Lo llvm.sh https://apt.llvm.org/llvm.sh && \
+  chmod +x llvm.sh && \
+  ./llvm.sh 14 && \
+  apt update && \
+  apt install -y libclang-14-dev
 
 RUN sbt clean buildApp
 
@@ -50,10 +59,12 @@ FROM scratch
 WORKDIR /workdir
 
 COPY --from=dev /workdir/build/statedir /workdir/statedir
-COPY --from=dev /workdir/build/server /workdir/server
 COPY --from=dev /workdir/build/web-server /workdir/web-server
 COPY --from=dev /workdir/build/worker /workdir/worker
 COPY --from=dev /workdir/build/static /workdir/static
+
+# LLVM shared libraries
+COPY --from=dev /usr/lib/llvm-14/lib /usr/lib/llvm-14/lib
 
 # unitd dependencies
 COPY --from=dev /usr/sbin/unitd /usr/sbin/unitd

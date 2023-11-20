@@ -117,11 +117,11 @@ lazy val `queue-processor` =
     .dependsOn(protocols, bindings)
     .defaultAxes((isScala3 ++ isNative)*)
     .nativePlatform(Seq(V.Scala))
-    .enablePlugins(ScalaNativePlugin, VcpkgNativePlugin, BindgenPlugin)
+    .enablePlugins(ScalaNativePlugin, VcpkgNativePlugin)
     .settings(
       vcpkgSettings,
       bindgenBinary := file(".no"),
-      libraryDependencies += ("com.indoorvivants" % "bindgen_native0.4_3" % bindgenVersion.value)
+      libraryDependencies += ("com.indoorvivants" % "bindgen_native0.4_3" % "0.0.22")
         .classifier(""),
       libraryDependencies += "io.circe" %%% "circe-parser" % V.circe,
       libraryDependencies += "com.indoorvivants" %%% "opaque-newtypes" % V.opaqueNewtypes, // SBT
