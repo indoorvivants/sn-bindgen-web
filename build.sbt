@@ -2,17 +2,17 @@ import java.lang
 import scala.scalanative.build.Mode
 
 val V = new {
-  val Scala = "3.3.0"
+  val Scala = "3.3.1"
 
-  val snunit = "0.7.0"
+  val snunit = "0.7.2"
 
   val snCrypto = "0.0.4"
 
-  val http4s = "0.23.19"
+  val http4s = "0.23.24"
 
   val fs2 = "3.6.1"
 
-  val scribe = "3.11.1"
+  val scribe = "3.12.2"
 
   val opaqueNewtypes = "0.0.2"
 
@@ -20,9 +20,13 @@ val V = new {
 
   val macroTaskExecutor = "1.1.1"
 
-  val laminar = "15.0.1"
+  val laminar = "16.0.0"
 
-  val circe = "0.14.5"
+  val circe = "0.14.6"
+
+  val waypoint = "7.0.0"
+
+  val http4sDom = "0.2.10"
 }
 
 val isScala3 = Seq(VirtualAxis.scalaABIVersion(V.Scala))
@@ -38,9 +42,9 @@ lazy val frontend =
     .settings(
       scalaJSUseMainModuleInitializer := true,
       libraryDependencies ++= Seq(
-        "org.http4s"   %%% "http4s-dom"                  % "0.2.7",
+        "org.http4s"   %%% "http4s-dom"                  % V.http4sDom,
         "com.raquo"    %%% "laminar"                     % V.laminar,
-        "com.raquo"    %%% "waypoint"                    % "6.0.0",
+        "com.raquo"    %%% "waypoint"                    % V.waypoint,
         "org.scala-js" %%% "scala-js-macrotask-executor" % V.macroTaskExecutor
       )
     )
@@ -55,16 +59,6 @@ lazy val protocols =
     .settings(
       libraryDependencies += "com.disneystreaming.smithy4s" %%% "smithy4s-http4s" % smithy4sVersion.value
     )
-
-lazy val vcpkgSettings = Seq(
-  vcpkgDependencies := VcpkgDependencies
-    .ManifestFile((ThisBuild / baseDirectory).value / "vcpkg.json"),
-  vcpkgNativeConfig ~= {
-    _.withRenamedLibraries(
-      Map("zstd" -> "libzstd")
-    )
-  }
-)
 
 lazy val `http-server` =
   projectMatrix
@@ -92,6 +86,9 @@ lazy val bindings =
     .enablePlugins(ScalaNativePlugin, VcpkgNativePlugin, BindgenPlugin)
     .settings(
       vcpkgSettings,
+      bindgenBinary := {
+        if (sys.env.contains("CI")) file(".no") else bindgenBinary.value
+      },
       bindgenMode := bindgen.plugin.BindgenMode.Manual(
         scalaDir = sourceDirectory.value / "main" / "scala" / "generated",
         cDir =
@@ -120,10 +117,11 @@ lazy val `queue-processor` =
     .dependsOn(protocols, bindings)
     .defaultAxes((isScala3 ++ isNative)*)
     .nativePlatform(Seq(V.Scala))
-    .enablePlugins(ScalaNativePlugin, VcpkgNativePlugin)
+    .enablePlugins(ScalaNativePlugin, VcpkgNativePlugin, BindgenPlugin)
     .settings(
       vcpkgSettings,
-      libraryDependencies += ("com.indoorvivants" % "bindgen_native0.4_3" % "0.0.17")
+      bindgenBinary := file(".no"),
+      libraryDependencies += ("com.indoorvivants" % "bindgen_native0.4_3" % bindgenVersion.value)
         .classifier(""),
       libraryDependencies += "io.circe" %%% "circe-parser" % V.circe,
       libraryDependencies += "com.indoorvivants" %%% "opaque-newtypes" % V.opaqueNewtypes, // SBT
@@ -137,96 +135,32 @@ lazy val `queue-processor` =
       scalacOptions += "-Wunused:all"
     )
 
-def unitConfig(
-    webPath: File,
-    workerPath: File,
-    staticPath: File,
-    storagePath: File
-) =
-  s"""
-{
-  "listeners": {
-    "*:9999": {
-      "pass": "routes/web"
-    },
-    "*:8888": {
-      "pass": "routes/worker"
-    }
-  },
-  "routes": {
-    "worker": [
-      {
-        "match": {
-          "uri": "/*"
-        },
-        "action": {
-          "pass": "applications/worker"
-        }
-      }
-    ],
-    "web": [
-      {
-        "match": {
-          "uri": "/api/*"
-        },
-        "action": {
-          "pass": "applications/web"
-        }
-      },
-      {
-        "match": {
-          "uri": "~^((/(.*)\\\\.(js|css|html))|/)$$"
-        },
-        "action": {
-          "share": "${staticPath}$$uri"
-        }
-      },
-      {
-        "action": {
-          "share": "${staticPath / "index.html"}"
-        }
-      }
-    ]
-  },
-  "applications": {
-    "worker": {
-      "processes": {
-        "max": 2,
-        "spare": 1
-      },
-      "type": "external",
-      "executable": "$workerPath",
-      "environment": {
-        "DB_PATH": "$storagePath/store.db",
-        "FILES_PATH": "$storagePath",
-      }
-    },
-    "web": {
-      "processes": {
-        "max": 2,
-        "idle_timeout": 180
-      },
-      "type": "external",
-      "executable": "$webPath",
-      "environment": {
-        "WORKER_HOST": "http://localhost:8888"
-      },
-      "limits": {
-        "timeout": 3,
-      }
-    }
+lazy val vcpkgSettings = Seq(
+  vcpkgDependencies := VcpkgDependencies
+    .ManifestFile((ThisBuild / baseDirectory).value / "vcpkg.json"),
+  vcpkgNativeConfig ~= {
+    _.withRenamedLibraries(
+      Map("zstd" -> "libzstd")
+    )
   }
-}
-
-"""
+)
 
 import scala.sys.process
 
-val buildApp = taskKey[Unit]("")
-buildApp := {
+val buildApp = taskKey[File]("")
+ThisBuild / buildApp := {
   locally { buildWeb.value }
   locally { buildWorker.value }
   locally { buildFrontend.value }
+
+  val dest     = (ThisBuild / baseDirectory).value / "build"
+  val statedir = dest / "statedir"
+  IO.createDirectory(statedir)
+
+  IO.copyFile(dest.getParentFile() / "conf.json", statedir / "conf.json")
+
+  dest
+
 }
 
 lazy val frontendFile = taskKey[File]("")
@@ -258,11 +192,6 @@ buildFrontend := {
         |@tailwind components;
         |@tailwind utilities;
         """.stripMargin
-    )
-
-  val staticPath =
-    new File(
-      sys.env.getOrElse("BINDGEN_WEB_STATIC_PATH", buildPath.toString)
     )
 
   val destination = buildPath / "static"
@@ -308,7 +237,7 @@ buildWorker := {
   val target = (`queue-processor`.native(V.Scala) / Compile / nativeLink).value
 
   val destination =
-    (ThisBuild / baseDirectory).value / "build" / "bindgen-worker"
+    (ThisBuild / baseDirectory).value / "build" / "worker"
 
   IO.delete(destination)
 
@@ -318,17 +247,13 @@ buildWorker := {
     preserveExecutable = true,
     preserveLastModified = true
   )
-
-  sys.env.get("CI").foreach { _ =>
-    val sudo = if (sys.env.contains("USE_SUDO")) "sudo " else ""
-  }
 }
 
 val buildWeb = taskKey[Unit]("")
 buildWeb := {
   val target = (`http-server`.native(V.Scala) / Compile / nativeLink).value
 
-  val destination = (ThisBuild / baseDirectory).value / "build" / "bindgen-web"
+  val destination = (ThisBuild / baseDirectory).value / "build" / "web-server"
 
   IO.delete(destination)
 
@@ -338,96 +263,6 @@ buildWeb := {
     preserveExecutable = true,
     preserveLastModified = true
   )
-
-  // process.Process(s"chmod 0777 ${destination}").!!
-
-  sys.env.get("CI").foreach { _ =>
-    val sudo = if (sys.env.contains("USE_SUDO")) "sudo " else ""
-  }
-}
-
-lazy val deployLocally = taskKey[Unit]("")
-deployLocally := {
-  locally { buildApp.value }
-  locally { updateUnitConfiguration.value }
-}
-
-lazy val updateUnitConfiguration = taskKey[Unit]("")
-
-updateUnitConfiguration := {
-  locally(buildApp.value)
-  val configJson = writeConfig.value.toString
-
-  def run(command: Seq[String]) = {
-    val sb = new StringBuilder
-    process.Process(command).!(process.ProcessLogger(sb ++= _))
-    sb.toString
-  }
-
-  val sudo = sys.env.get("USE_SUDO").map(_ => "sudo").toSeq
-
-  val create_result = run(sudo ++ Seq("unitc", "PUT", configJson, "/config"))
-  assert(
-    create_result.contains("Reconfiguration done"),
-    s"Unit reconfiguration didn't succeed, returning `$create_result`"
-  )
-
-  def reloadApp(name: String) = {
-    val web_reload_result = run(
-      sudo
-        ++ Seq("unitc", "GET", s"/control/applications/$name/restart")
-    )
-    assert(
-      web_reload_result.contains("success"),
-      s"$name: Unit reload didn't succeed, returning `$web_reload_result`"
-    )
-  }
-
-  reloadApp("web")
-  reloadApp("worker")
-}
-
-lazy val writeConfig = taskKey[File]("")
-writeConfig := {
-  val buildPath          = ((ThisBuild / baseDirectory).value / "build")
-  val defaultStaticPath  = buildPath / "static"
-  val defaultStoragePath = ((ThisBuild / baseDirectory).value / "data")
-  IO.createDirectory(defaultStoragePath)
-
-  val webPath =
-    new File(
-      sys.env.getOrElse(
-        "BINDGEN_WEB_HTTP_APP_PATH",
-        (buildPath / "bindgen-web").toString
-      )
-    )
-  val workerPath =
-    new File(
-      sys.env.getOrElse(
-        "BINDGEN_WEB_WORKER_APP_PATH",
-        (buildPath / "bindgen-worker").toString
-      )
-    )
-  val staticPath =
-    new File(
-      sys.env.getOrElse("BINDGEN_WEB_STATIC_PATH", defaultStaticPath.toString)
-    )
-  val storagePath =
-    new File(
-      sys.env.getOrElse("BINDGEN_WEB_STORAGE_PATH", defaultStoragePath.toString)
-    )
-
-  val configPath =
-    new File(
-      sys.env.getOrElse(
-        "BINDGEN_WEB_CONFIG_PATH",
-        (buildPath / "config.json").toString
-      )
-    )
-
-  IO.write(configPath, unitConfig(webPath, workerPath, staticPath, storagePath))
-
-  configPath
 }
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
@@ -517,3 +352,38 @@ concurrentRestrictions in Global ++= Seq(
   Tags.limit(NativeTags.Link, 1),
   Tags.limit(ScalaJSTags.Link, 1)
 )
+
+def UNITD_LOCAL_COMMAND =
+  "unitd --statedir statedir --log /dev/stderr --no-daemon --control 127.0.0.1:9000"
+
+lazy val runServer = taskKey[Unit]("")
+runServer := {
+  val dest = buildApp.value
+
+  import scala.sys.process.*
+  val data = (ThisBuild / baseDirectory).value / "data" / "worker.db"
+
+  val proc = Process(
+    UNITD_LOCAL_COMMAND,
+    cwd = dest,
+    "WORKER_HOST" -> "http://localhost:8888",
+    "DB_PATH"     -> data.toString
+  )
+
+  proc.!
+}
+
+lazy val devServer = project
+  .in(file("modules/dev-server"))
+  .enablePlugins(RevolverPlugin)
+  .settings(
+    fork         := true,
+    scalaVersion := V.Scala,
+    envVars ++= Map(
+      "SERVER_BINARY" -> (ThisBuild / buildApp).value.toString,
+      "UNITD_COMMAND" -> UNITD_LOCAL_COMMAND,
+      "SERVER_CWD"    -> ((ThisBuild / baseDirectory).value / "build").toString,
+      "WORKER_HOST"   -> "http://localhost:8888",
+      "DB_PATH" -> ((ThisBuild / baseDirectory).value / "data" / "worker.db").toString
+    )
+  )

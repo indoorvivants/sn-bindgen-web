@@ -38,7 +38,7 @@ class Api private (
 end Api
 
 object Api:
-  def create(location: String = dom.window.location.origin.get) =
+  def create(location: String = dom.window.location.origin) =
     val uri = Uri.unsafeFromString(location)
 
     val client = FetchClientBuilder[IO].create
@@ -47,7 +47,7 @@ object Api:
       SimpleRestJsonBuilder(BindgenService)
         .client(client)
         .uri(uri)
-        .use
+        .make
         .fold(throw _, identity)
     )
   end create

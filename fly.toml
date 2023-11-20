@@ -9,9 +9,6 @@ kill_timeout = 5
 primary_region = "lhr"
 processes = []
 
-[build]
-  image = "bindgen-web:latest"
-
 [env]
 
 [mounts]

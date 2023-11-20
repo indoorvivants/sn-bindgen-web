@@ -45,6 +45,11 @@ def renderMainPage(using Api, Router[Page]) =
       )
     } --> error.writer
 
+  val codeUpdater =
+    state.updater[String]((spec, newv) =>
+      spec.copy(headerCode = HeaderCode(newv))
+    )
+
   div(
     updater,
     cls := "w-10/12 m-auto",
@@ -113,9 +118,9 @@ def renderMainPage(using Api, Router[Page]) =
         cls := "m-4 w-full items-center",
         textArea(
           cls := "w-full",
-          onInput.mapToValue --> state.updater[String]((spec, newv) =>
-            spec.copy(headerCode = HeaderCode(newv))
-          ),
+          // onChange.mapToValue --> state.updater[String]((spec, newv) =>
+          //   spec.copy(headerCode = HeaderCode(newv))
+          // ),
           onMountCallback(el =>
             CodeMirror
               .fromTextArea(
@@ -126,6 +131,7 @@ def renderMainPage(using Api, Router[Page]) =
                   "mode"        -> "text/x-csrc"
                 )
               )
+              .on("change", value => codeUpdater.onNext(value.getValue()))
           ),
           value <-- state.signal.map(_.headerCode.value)
         )

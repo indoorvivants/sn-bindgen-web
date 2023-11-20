@@ -1,0 +1,63 @@
+{
+  "listeners": {
+    "*:9999": {
+      "pass": "routes/web"
+    },
+    "*:8888": {
+      "pass": "routes/worker"
+    }
+  },
+  "routes": {
+    "worker": [
+      {
+        "match": {
+          "uri": "/*"
+        },
+        "action": {
+          "pass": "applications/worker"
+        }
+      }
+    ],
+    "web": [
+      {
+        "match": {
+          "uri": "/api/*"
+        },
+        "action": {
+          "pass": "applications/web"
+        }
+      },
+      {
+        "match": {
+          "uri": "~^((/(.*)\\.(js|css|html))|/)$"
+        },
+        "action": {
+          "share": "static$uri"
+        }
+      },
+      {
+        "action": {
+          "share": "stati/index.html"
+        }
+      }
+    ]
+  },
+  "applications": {
+    "worker": {
+      "processes": {
+        "max": 1,
+        "spare": 1
+      },
+      "type": "external",
+      "executable": "worker"
+    },
+    "web": {
+      "processes": {
+        "max": 2,
+        "idle_timeout": 180
+      },
+      "type": "external",
+      "executable": "web-server",
+    }
+  }
+}
