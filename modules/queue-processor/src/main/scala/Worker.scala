@@ -10,11 +10,14 @@ import concurrent.duration.*
 import bindgen.web.domain.*
 import fs2.io.file.Files
 import bindgen.rendering.RenderedOutput
+import fs2.io.file.Path
+import java.io.FileWriter
+import java.io.File
 
 opaque type WorkerId = UUID
 object WorkerId extends TotalWrapper[WorkerId, UUID]
 
-class Worker private (id: WorkerId, store: Store):
+class Worker private (id: WorkerId, store: Store, tempFolder: Option[Path]):
   def process =
     Queue.bounded[IO, JobId](100).toResource.flatMap { q =>
       val normalProcess =
@@ -65,86 +68,99 @@ class Worker private (id: WorkerId, store: Store):
           s"Job $jobId was scheduled but is not found in the database in incomplete state"
         )
       case Some(spec) =>
-        generate(spec.packageName, spec.headerCode).flatMap { gc =>
-          store
-            .complete(
-              jobId,
-              Left(
-                gc
+        generate(spec.packageName, spec.headerCode)
+          // .onError(err => Log.error(s"Failed to procoess job $jobId", err))
+          .flatMap { gc =>
+            store
+              .complete(
+                jobId,
+                Left(
+                  gc
+                )
               )
-            )
-        }
+          }
 
     }
 
   def generate(packageName: PackageName, code: HeaderCode) =
     import bindgen.*
     ZoneResource.useI {
-      Files[IO].tempFile(None, "", ".h", None).use { path =>
-        val wr =
-          fs2.Stream
-            .emit(code.value)
-            .covary[IO]
-            .through(Files[IO].writeUtf8(path))
-            .compile
-            .drain
 
-        val llvmBin = 
-          sys.env.get("LLVM_BIN").toSeq.flatMap { path =>
-            Seq("--llvm-bin", path)
-          }
+      val f = new File("/tmp/hello.h")
 
-        val parsed = CLI.command.parse(
-          Seq(
-            "--package",
-            packageName.value,
-            "--header",
-            path.toString,
-            "--render.no-location"
-          ) ++ llvmBin
-        )
+      val fw = new FileWriter(f)
 
-        parsed match
-          case Left(help) =>
-            val (modified, code) =
-              if help.errors.nonEmpty then help.copy(body = Nil) -> -1
-              else help                                          -> 0
-            IO.raiseError(new RuntimeException(modified.toString))
-          case Right(config) =>
-            given Config = config.copy(minLogPriority =
-              MinLogPriority(LogLevel.priority(LogLevel.warning))
-            )
+      fw.write("void m(int);")
 
-            def run(lang: Lang) =
-              IO(
-                bindgen.rendering.binding(
-                  analyse(path.toString),
-                  lang,
-                  OutputMode.StdOut
-                )
+      fw.close()
+
+      Log.info(s"temp folder: $tempFolder") *>
+        Files[IO].tempFile(tempFolder, "", ".h", None).use { path =>
+          scribe.info(s"In path $path")
+          val writeFile =
+            fs2.Stream
+              .emit(code.value)
+              .covary[IO]
+              .through(Files[IO].writeUtf8(path))
+              .compile
+              .drain
+
+          val llvmBin =
+            sys.env.get("LLVM_BIN").toSeq.flatMap { path =>
+              Seq("--llvm-bin", path)
+            }
+
+          val parsed = CLI.command.parse(
+            Seq(
+              "--package",
+              packageName.value,
+              "--header",
+              path.toString,
+              "--render.no-location"
+            ) ++ llvmBin
+          )
+
+          parsed match
+            case Left(help) =>
+              val (modified, code) =
+                if help.errors.nonEmpty then help.copy(body = Nil) -> -1
+                else help                                          -> 0
+              IO.raiseError(new RuntimeException(modified.toString))
+            case Right(config) =>
+              given Config = config.copy(minLogPriority =
+                MinLogPriority(LogLevel.priority(LogLevel.trace))
               )
 
-            val scalaResult =
-              run(Lang.Scala).map { case RenderedOutput.Single(lb) =>
-                ScalaCode(lb.result)
-              }
+              def run(lang: Lang) =
+                IO(
+                  bindgen.rendering.binding(
+                    analyse(path.toString),
+                    lang,
+                    OutputMode.StdOut
+                  )
+                )
 
-            val cResult =
-              run(Lang.C).map { case RenderedOutput.Single(lb) =>
-                val res = lb.result
-                Option.when(res.nonEmpty)(GlueCode(res))
-              }
+              val scalaResult =
+                run(Lang.Scala).map { case RenderedOutput.Single(lb) =>
+                  ScalaCode(lb.result)
+                }
 
-            val result = (scalaResult, cResult).mapN(GeneratedCode.apply)
+              val cResult =
+                run(Lang.C).map { case RenderedOutput.Single(lb) =>
+                  val res = lb.result
+                  Option.when(res.nonEmpty)(GlueCode(res))
+                }
 
-            wr *> result
-        end match
-      }
+              val result = (scalaResult, cResult).mapN(GeneratedCode.apply)
+
+              writeFile *> result
+          end match
+        }
     }
   end generate
 
 end Worker
 
 object Worker:
-  def create(store: Store): IO[Worker] =
-    UUIDGen[IO].randomUUID.map(WorkerId(_)).map(Worker(_, store))
+  def create(store: Store, tempFolder: Option[Path]): IO[Worker] =
+    UUIDGen[IO].randomUUID.map(WorkerId(_)).map(Worker(_, store, tempFolder))
