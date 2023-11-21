@@ -57,7 +57,7 @@
         "idle_timeout": 180
       },
       "type": "external",
-      "executable": "web-server",
+      "executable": "web-server"
     }
   }
 }

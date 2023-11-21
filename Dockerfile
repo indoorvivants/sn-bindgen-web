@@ -8,11 +8,11 @@ ARG unit_version=1.31.1
 ENV UNIT_VERSION=${unit_version}
 
 # Compile minimal NGINX Unit
-RUN apt-get update && apt-get install -y curl build-essential
+RUN apt-get update && apt-get install -y curl build-essential libpcre2-dev
 RUN curl -O https://unit.nginx.org/download/unit-$UNIT_VERSION.tar.gz && tar xzf unit-$UNIT_VERSION.tar.gz
 RUN mv unit-$UNIT_VERSION unit
 RUN cd unit && \
-    ./configure --no-ipv6 --no-regex --log=/dev/stderr --user=unit --group=unit --statedir=statedir && \
+    ./configure --no-ipv6 --log=/dev/stderr --user=unit --group=unit --statedir=statedir && \
     make build/sbin/unitd && \
     make build/lib/libunit.a && \
     install -p build/lib/libunit.a /usr/local/lib/libunit.a && \
@@ -28,7 +28,6 @@ COPY vcpkg.json .
 ENV VCPKG_FORCE_SYSTEM_BINARIES=1
 RUN sn-vcpkg install -v --manifest vcpkg.json
 
-COPY . .
 
 ARG scalanative_mode=release-fast
 ARG scalanative_lto=thin
@@ -46,6 +45,7 @@ RUN apt update && apt install -y lsb-release wget software-properties-common gnu
   apt update && \
   apt install -y libclang-14-dev
 
+COPY . .
 RUN sbt clean buildApp
 
 RUN mkdir empty_dir
@@ -53,6 +53,12 @@ RUN groupadd --gid 999 unit && \
     useradd --uid 999 --gid unit --no-create-home --shell /bin/false unit
 RUN cat /etc/passwd | grep unit > passwd
 RUN cat /etc/group | grep unit > group
+
+RUN chown unit:unit build/web-server
+RUN chown unit:unit build/worker
+
+RUN ldd build/worker
+
 
 FROM scratch
 
@@ -63,14 +69,13 @@ COPY --from=dev /workdir/build/web-server /workdir/web-server
 COPY --from=dev /workdir/build/worker /workdir/worker
 COPY --from=dev /workdir/build/static /workdir/static
 
-# LLVM shared libraries
-COPY --from=dev /usr/lib/llvm-14/lib /usr/lib/llvm-14/lib
 
 # unitd dependencies
 COPY --from=dev /usr/sbin/unitd /usr/sbin/unitd
 COPY --from=dev /workdir/passwd /etc/passwd
 COPY --from=dev /workdir/group /etc/group
-COPY --from=dev /workdir/empty_dir /var/run
+COPY --from=dev /workdir/empty_dir /usr/local/var/run/
+COPY --from=dev /workdir/empty_dir /var/data/bindgen-web
 
 ## x86_64 specific files
 COPY --from=dev */lib/x86_64-linux-gnu/libm.so.6 /lib/x86_64-linux-gnu/libm.so.6
@@ -97,6 +102,21 @@ COPY --from=dev */lib/x86_64-linux-gnu/libgcc_s.so.1 /lib/x86_64-linux-gnu/libgc
 ## aarch64 speicific files
 COPY --from=dev */lib/aarch64-linux-gnu/libstdc++.so.6 /lib/aarch64-linux-gnu/libstdc++.so.6
 COPY --from=dev */lib/aarch64-linux-gnu/libgcc_s.so.1 /lib/aarch64-linux-gnu/libgcc_s.so.1
+
+# LLVM shared libraries
+COPY --from=dev /lib/aarch64-linux-gnu/libclang-14.so.13 /lib/aarch64-linux-gnu/
+COPY --from=dev /lib/aarch64-linux-gnu/libLLVM-14.so.1 /lib/aarch64-linux-gnu/
+COPY --from=dev /lib/aarch64-linux-gnu/libffi.so.8 /lib/aarch64-linux-gnu/
+COPY --from=dev /lib/aarch64-linux-gnu/libedit.so.2 /lib/aarch64-linux-gnu/
+COPY --from=dev /lib/aarch64-linux-gnu/libz.so.1 /lib/aarch64-linux-gnu/
+COPY --from=dev /lib/aarch64-linux-gnu/libtinfo.so.6 /lib/aarch64-linux-gnu/
+COPY --from=dev /lib/aarch64-linux-gnu/libxml2.so.2 /lib/aarch64-linux-gnu/
+COPY --from=dev /lib/aarch64-linux-gnu/libbsd.so.0 /lib/aarch64-linux-gnu/
+COPY --from=dev /lib/aarch64-linux-gnu/libicuuc.so.70 /lib/aarch64-linux-gnu/
+COPY --from=dev /lib/aarch64-linux-gnu/liblzma.so.5 /lib/aarch64-linux-gnu/
+COPY --from=dev /lib/aarch64-linux-gnu/libmd.so.0 /lib/aarch64-linux-gnu/
+COPY --from=dev /lib/aarch64-linux-gnu/libicudata.so.70 /lib/aarch64-linux-gnu/
+
 
 ENV WORKER_HOST=http://localhost:8888
 ENV DB_PATH=/var/data/bindgen-web/data.db
