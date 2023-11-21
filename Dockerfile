@@ -117,6 +117,19 @@ COPY --from=dev /lib/aarch64-linux-gnu/liblzma.so.5 /lib/aarch64-linux-gnu/
 COPY --from=dev /lib/aarch64-linux-gnu/libmd.so.0 /lib/aarch64-linux-gnu/
 COPY --from=dev /lib/aarch64-linux-gnu/libicudata.so.70 /lib/aarch64-linux-gnu/
 
+COPY --from=dev /lib/x86_64-linux-gnu/libclang-14.so.13 /lib/x86_64-linux-gnu/
+COPY --from=dev /lib/x86_64-linux-gnu/libLLVM-14.so.1 /lib/x86_64-linux-gnu/
+COPY --from=dev /lib/x86_64-linux-gnu/libffi.so.8 /lib/x86_64-linux-gnu/
+COPY --from=dev /lib/x86_64-linux-gnu/libedit.so.2 /lib/x86_64-linux-gnu/
+COPY --from=dev /lib/x86_64-linux-gnu/libz.so.1 /lib/x86_64-linux-gnu/
+COPY --from=dev /lib/x86_64-linux-gnu/libtinfo.so.6 /lib/x86_64-linux-gnu/
+COPY --from=dev /lib/x86_64-linux-gnu/libxml2.so.2 /lib/x86_64-linux-gnu/
+COPY --from=dev /lib/x86_64-linux-gnu/libbsd.so.0 /lib/x86_64-linux-gnu/
+COPY --from=dev /lib/x86_64-linux-gnu/libicuuc.so.70 /lib/x86_64-linux-gnu/
+COPY --from=dev /lib/x86_64-linux-gnu/liblzma.so.5 /lib/x86_64-linux-gnu/
+COPY --from=dev /lib/x86_64-linux-gnu/libmd.so.0 /lib/x86_64-linux-gnu/
+COPY --from=dev /lib/x86_64-linux-gnu/libicudata.so.70 /lib/x86_64-linux-gnu/
+
 
 ENV WORKER_HOST=http://localhost:8888
 ENV DB_PATH=/var/data/bindgen-web/data.db
