@@ -1,5 +1,5 @@
 addSbtPlugin("org.scala-native" % "sbt-scala-native" % "0.4.16")
-addSbtPlugin("com.indoorvivants.vcpkg" % "sbt-vcpkg-native" % "0.0.11")
+addSbtPlugin("com.indoorvivants.vcpkg" % "sbt-vcpkg-native" % "0.0.18")
 addSbtPlugin("com.disneystreaming.smithy4s" % "smithy4s-sbt-codegen" % "0.18.3")
 resolvers += Resolver.sonatypeRepo("snapshots")
 addSbtPlugin("com.indoorvivants" % "bindgen-sbt-plugin" % "0.0.22")
