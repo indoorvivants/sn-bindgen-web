@@ -45,8 +45,19 @@ RUN apt update && apt install -y lsb-release wget software-properties-common gnu
   apt update && \
   apt install -y libclang-14-dev
 
-COPY . .
-RUN sbt clean buildApp
+COPY project/build.properties project/
+COPY project/plugins.sbt project/
+COPY project/*.scala project/
+COPY build.sbt .
+COPY conf.json .
+COPY .jvmopts .
+COPY modules/bindings/src modules/bindings/src
+COPY modules/http-server/src modules/http-server/src
+COPY modules/protocols/src modules/protocols/src
+COPY modules/frontend/src modules/frontend/src
+COPY modules/queue-processor/src modules/queue-processor/src
+
+RUN sbt buildApp
 
 RUN mkdir empty_dir
 RUN mkdir empty_tmp_dir && chmod 0777 empty_tmp_dir
@@ -78,7 +89,7 @@ COPY --from=dev /usr/sbin/unitd /usr/sbin/unitd
 COPY --from=dev /workdir/passwd /etc/passwd
 COPY --from=dev /workdir/group /etc/group
 COPY --from=dev /workdir/empty_dir /usr/local/var/run/
-COPY --from=dev /workdir/empty_tmp_dir/ /tmp/
+COPY --from=dev /workdir/empty_tmp_dir /tmp/
 
 ## x86_64 specific files
 COPY --from=dev */lib/x86_64-linux-gnu/libm.so.6 /lib/x86_64-linux-gnu/libm.so.6
@@ -141,7 +152,7 @@ COPY --from=dev /usr/lib/llvm-14/bin/ /usr/lib/llvm-14/bin/
 ENV WORKER_HOST=http://localhost:8888
 ENV DB_PATH=/var/data/bindgen-web/data.db
 ENV LLVM_BIN=/usr/lib/llvm-14/bin
-ENV TEMP_PATH=/tmp
+ENV TEMP_PATH=/var/data/bindgen-web/tmp
 
 ENTRYPOINT [ "unitd", "--statedir", "statedir", "--log", "/dev/stdout", "--no-daemon" ]
 

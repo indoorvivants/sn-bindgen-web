@@ -20,9 +20,11 @@ processes = []
 
 [[services]]
   internal_port = 9999
-  processes = ["app"]
   protocol = "tcp"
-  script_checks = []
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0  
 
 [services.concurrency]
   hard_limit = 25

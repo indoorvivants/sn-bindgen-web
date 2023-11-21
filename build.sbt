@@ -33,6 +33,29 @@ val isScala3 = Seq(VirtualAxis.scalaABIVersion(V.Scala))
 val isNative = Seq(VirtualAxis.native)
 val isJS     = Seq(VirtualAxis.js)
 
+val remoteCache = Seq(
+  Compile / doc / sources := Seq.empty,
+  pushRemoteCacheTo := Some(
+    MavenCache(
+      "local-cache",
+      (ThisBuild / baseDirectory).value / ".remote-cache"
+    )
+  )
+)
+
+lazy val root = project
+  .in(file("."))
+  .aggregate(frontend.projectRefs*)
+  .aggregate(protocols.projectRefs*)
+  .aggregate(`http-server`.projectRefs*)
+  .aggregate(`queue-processor`.projectRefs*)
+  .aggregate(bindings.projectRefs*)
+  .settings(
+    publish / skip      := true,
+    publishLocal / skip := true,
+    remoteCache
+  )
+
 lazy val frontend =
   projectMatrix
     .dependsOn(protocols)
@@ -40,6 +63,7 @@ lazy val frontend =
     .defaultAxes((isScala3 ++ isJS)*)
     .jsPlatform(Seq(V.Scala))
     .settings(
+      remoteCache,
       scalaJSUseMainModuleInitializer := true,
       libraryDependencies ++= Seq(
         "org.http4s"   %%% "http4s-dom"                  % V.http4sDom,
@@ -57,6 +81,7 @@ lazy val protocols =
     .jsPlatform(Seq(V.Scala))
     .enablePlugins(Smithy4sCodegenPlugin)
     .settings(
+      remoteCache,
       libraryDependencies += "com.disneystreaming.smithy4s" %%% "smithy4s-http4s" % smithy4sVersion.value
     )
 
@@ -75,7 +100,8 @@ lazy val `http-server` =
       libraryDependencies += "com.outr"   %%% "scribe-cats"         % V.scribe,
       nativeConfig ~= { _.withIncrementalCompilation(true) },
       scalacOptions += "-Wunused:all",
-      vcpkgSettings
+      vcpkgSettings,
+      remoteCache
     )
 
 lazy val bindings =
@@ -85,6 +111,7 @@ lazy val bindings =
     .nativePlatform(Seq(V.Scala))
     .enablePlugins(ScalaNativePlugin, VcpkgNativePlugin, BindgenPlugin)
     .settings(
+      remoteCache,
       vcpkgSettings,
       bindgenBinary := {
         if (sys.env.contains("CI")) file(".no") else bindgenBinary.value
@@ -119,6 +146,7 @@ lazy val `queue-processor` =
     .nativePlatform(Seq(V.Scala))
     .enablePlugins(ScalaNativePlugin, VcpkgNativePlugin)
     .settings(
+      remoteCache,
       vcpkgSettings,
       bindgenBinary := file(".no"),
       libraryDependencies += ("com.indoorvivants" % "bindgen_native0.4_3" % "0.0.22")
@@ -158,6 +186,8 @@ ThisBuild / buildApp := {
   IO.createDirectory(statedir)
 
   IO.copyFile(dest.getParentFile() / "conf.json", statedir / "conf.json")
+
+  pushRemoteCache.value
 
   dest
 

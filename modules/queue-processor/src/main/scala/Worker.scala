@@ -85,15 +85,6 @@ class Worker private (id: WorkerId, store: Store, tempFolder: Option[Path]):
   def generate(packageName: PackageName, code: HeaderCode) =
     import bindgen.*
     ZoneResource.useI {
-
-      val f = new File("/tmp/hello.h")
-
-      val fw = new FileWriter(f)
-
-      fw.write("void m(int);")
-
-      fw.close()
-
       Log.info(s"temp folder: $tempFolder") *>
         Files[IO].tempFile(tempFolder, "", ".h", None).use { path =>
           scribe.info(s"In path $path")
