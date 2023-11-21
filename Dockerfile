@@ -49,6 +49,7 @@ COPY . .
 RUN sbt clean buildApp
 
 RUN mkdir empty_dir
+RUN mkdir empty_db_dir && chmod 0777 empty_db_dir
 RUN groupadd --gid 999 unit && \
     useradd --uid 999 --gid unit --no-create-home --shell /bin/false unit
 RUN cat /etc/passwd | grep unit > passwd
@@ -75,7 +76,6 @@ COPY --from=dev /usr/sbin/unitd /usr/sbin/unitd
 COPY --from=dev /workdir/passwd /etc/passwd
 COPY --from=dev /workdir/group /etc/group
 COPY --from=dev /workdir/empty_dir /usr/local/var/run/
-COPY --from=dev /workdir/empty_dir /var/data/bindgen-web
 
 ## x86_64 specific files
 COPY --from=dev */lib/x86_64-linux-gnu/libm.so.6 /lib/x86_64-linux-gnu/libm.so.6
