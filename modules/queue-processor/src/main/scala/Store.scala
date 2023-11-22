@@ -12,6 +12,11 @@ import scala.scalanative.unsafe.*
 import fs2.io.file.Files
 import fs2.io.file.Path
 
+enum State:
+  case Added
+  case Completed
+  case Failed
+
 trait Store:
   def complete(id: JobId, code: Either[GeneratedCode, ClangErrors]): IO[Unit]
   def removeLease(workerId: WorkerId, jid: JobId): IO[Unit]
@@ -33,9 +38,12 @@ class StoreImpl(db: Database[IO]) extends Store:
     IO.realTimeInstant.flatMap { instant =>
       UUIDGen.randomUUID[IO].map(JobId(_)).flatMap { id =>
         db.execute(
-          sql"insert into bindings (id, added, header_code, package_name) values (${C.jobId}, $integer, ${C.headerCode}, ${C.packageName});".command,
+          sql"""
+          |insert into bindings (id, state, state_date, header_code, package_name) 
+          | values (${C.jobId}, ${C.state}, $integer, ${C.headerCode}, ${C.packageName});""".stripMargin.command,
           (
             id,
+            State.Added,
             instant.getEpochSecond(),
             spec.headerCode,
             spec.packageName
@@ -53,7 +61,7 @@ class StoreImpl(db: Database[IO]) extends Store:
         case Left(code) =>
           val complete =
             db.execute(
-              sql"update bindings set completed = $integer where id = ${C.jobId};".command,
+              sql"update bindings set state = 'completed', state_date = $integer where id = ${C.jobId};".command,
               (instant, id)
             )
           val setCode = db.execute(
@@ -64,8 +72,9 @@ class StoreImpl(db: Database[IO]) extends Store:
           setCode *> complete // note, this is not atomic
 
         case Right(value) =>
-          Log.error(
-            "The logic for completing with errors is not implemented yet"
+          db.execute(
+            sql"update bindings set state = 'failed', state_date = $integer where id = ${C.jobId};".command,
+            (instant, id)
           )
       end match
 
@@ -77,11 +86,11 @@ class StoreImpl(db: Database[IO]) extends Store:
       (jid, workerId)
     )
 
-  override def isCompleted(jid: JobId): IO[Boolean] =
+  override def isCompleted(jobId: JobId): IO[Boolean] =
     db.option(
-      sql"select id from bindings where completed is not null and id = ${C.jobId}"
+      sql"select id from bindings where state = ${C.state} and id = ${C.jobId}"
         .query(C.jobId),
-      jid
+      (State.Completed, jobId)
     ).map(_.isDefined)
 
   val timeStream = fs2.Stream.eval(IO.realTimeInstant).map(_.getEpochSecond())
@@ -114,8 +123,8 @@ class StoreImpl(db: Database[IO]) extends Store:
             |  from 
             |    bindings b left join leases l on l.binding_id = b.id 
             |  where 
-            |    l.worker_id is null 
-            |    and b.completed is null 
+            |    l.worker_id is null and
+            |    state in ('added')
             |  limit ${integer} 
             |returning binding_id;
           """.stripMargin.query(C.jobId),
@@ -128,11 +137,11 @@ class StoreImpl(db: Database[IO]) extends Store:
     db.stream(
       sql"""
          |select 
-         |  id, row_number() over (order by added) 
+         |  id, row_number() over (order by state_date) 
          |from 
          |  bindings 
          |where 
-         |  completed is null;
+         |  state in ('added');
          """.stripMargin.query(
         (C.jobId, integer.asDecoder.map(_.toInt)).tupled
       ),
@@ -144,7 +153,7 @@ class StoreImpl(db: Database[IO]) extends Store:
 
   override def getNoncompleteSpec(id: JobId): IO[Option[BindingSpec]] =
     db.option(
-      sql"select header_code, package_name, null from bindings where id = ${C.jobId} and completed is null"
+      sql"""select header_code, package_name, null from bindings where id = ${C.jobId} and state in ('added')"""
         .query(C.bindingSpec),
       id
     )
@@ -159,7 +168,7 @@ class StoreImpl(db: Database[IO]) extends Store:
     )
 
     val getSpec = db.option(
-      sql"select header_code, package_name, null, completed from bindings where id = ${C.jobId}"
+      sql"select header_code, package_name, null, state_date from bindings where id = ${C.jobId}"
         .query(C.bindingSpec.product(integer.opt)),
       id
     )
@@ -219,6 +228,17 @@ class StoreImpl(db: Database[IO]) extends Store:
 
     lazy val jobId =
       text.imap[JobId](t => JobId(UUID.fromString(t)))(_.value.toString)
+
+    lazy val state =
+      text.imap[State] {
+        case "completed" => State.Completed
+        case "failed"    => State.Failed
+        case "added"     => State.Added
+      } {
+        case State.Added     => "added"
+        case State.Completed => "completed"
+        case State.Failed    => "failed"
+      }
   end C
 
 end StoreImpl
@@ -248,8 +268,8 @@ object Store:
             sql"""
            |create table if not exists bindings(
            |  id text primary key not null,
-           |  added int not null,
-           |  completed int,
+           |  state text not null,
+           |  state_date int not null,
            |  header_code blob not null,
            |  package_name text not null
            |);""".stripMargin,

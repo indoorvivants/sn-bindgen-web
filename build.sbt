@@ -187,8 +187,6 @@ ThisBuild / buildApp := {
 
   IO.copyFile(dest.getParentFile() / "conf.json", statedir / "conf.json")
 
-  pushRemoteCache.value
-
   dest
 
 }

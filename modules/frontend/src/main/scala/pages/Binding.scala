@@ -5,13 +5,11 @@ import bindgen.web.domain.*
 import bindgen.web.domain.Status.*
 import com.raquo.waypoint.*
 
-private def renderBinding(gb: GeneratedBinding)(using Router[Page]) =
+private def renderBinding(gb: GeneratedBinding, showSource: Boolean) =
   div(
-    pageTitle,
-    a(href := "#", "← Go back", navigateTo(Page.Main)),
     cls := "bg-blue-950 font-sans text-white w-11/12 m-auto",
-    headerBlock("Original C header"),
-    codeBlock("c", gb.spec.headerCode.value),
+    Option.when(showSource)(headerBlock("Original C header")),
+    Option.when(showSource)(codeBlock("c", gb.spec.headerCode.value)),
     gb.code.map { gc =>
       val scalaCodeBlock =
         div(
@@ -39,16 +37,15 @@ private def renderBinding(gb: GeneratedBinding)(using Router[Page]) =
     }
   )
 
-def renderBindingPage(userPageSignal: Signal[Page.BindingPage])(using
-    Api,
-    Router[Page]
-): Div =
+def renderBindingId(idSignal: Observable[JobId], showSource: Boolean)(using
+    Api
+) =
   div(
     cls := "w-full",
-    child <-- userPageSignal.flatMap { page =>
+    child <-- idSignal.flatMap { id =>
       api
         .signal(
-          _.users.getStatus(page.id).map(_.status)
+          _.users.getStatus(id).map(_.status)
         )
         .flatMap {
           case None => Signal.fromValue(i("gimme a minute"))
@@ -67,13 +64,23 @@ def renderBindingPage(userPageSignal: Signal[Page.BindingPage])(using
               case FailedCase(failed) =>
                 Signal.fromValue(b(s"Failed: ${failed.message}"))
               case CompletedCase(completed) =>
-                api.signal(_.users.getBinding(page.id)).map {
+                api.signal(_.users.getBinding(id)).map {
                   case None => i("gimme a minute")
                   case Some(value) =>
-                    renderBinding(value)
+                    renderBinding(value, showSource = showSource)
                 }
 
         }
 
     }
+  )
+
+def renderBindingPage(userPageSignal: Signal[Page.BindingPage])(using
+    Api,
+    Router[Page]
+): Div =
+  div(
+    pageTitle,
+    cls := "bg-blue-950 font-sans text-white w-11/12 m-auto",
+    renderBindingId(userPageSignal.map(_.id), showSource = true)
   )

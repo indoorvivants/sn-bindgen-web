@@ -23,7 +23,8 @@ class Worker private (id: WorkerId, store: Store, tempFolder: Option[Path]):
       val normalProcess =
         fs2.Stream
           .repeatEval(q.tryTake)
-          .meteredStartImmediately(500.millis)
+          // .repeatEval(IO.pure(Option.empty))
+          .meteredStartImmediately(1.second)
           .flatMap {
             case None =>
               val unprocessed = store
@@ -68,17 +69,25 @@ class Worker private (id: WorkerId, store: Store, tempFolder: Option[Path]):
           s"Job $jobId was scheduled but is not found in the database in incomplete state"
         )
       case Some(spec) =>
-        generate(spec.packageName, spec.headerCode)
-          // .onError(err => Log.error(s"Failed to procoess job $jobId", err))
-          .flatMap { gc =>
+        generate(spec.packageName, spec.headerCode).attempt.flatMap {
+          case Left(exc) =>
+            store.complete(
+              jobId,
+              Right(
+                ClangErrors(
+                  List(ClangError(severity = "error", message = exc.getMessage))
+                )
+              )
+            )
+          case Right(generatedCode) =>
             store
               .complete(
                 jobId,
                 Left(
-                  gc
+                  generatedCode
                 )
               )
-          }
+        }
 
     }
 
