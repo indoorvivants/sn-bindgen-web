@@ -1,5 +1,6 @@
 import java.lang
 import scala.scalanative.build.Mode
+import org.scalajs.linker.interface.ModuleSplitStyle
 
 val V = new {
   val Scala = "3.3.1"
@@ -65,6 +66,12 @@ lazy val frontend =
     .settings(
       remoteCache,
       scalaJSUseMainModuleInitializer := true,
+      fastLinkJS / scalaJSLinkerConfig ~= {
+        _.withModuleKind(ModuleKind.ESModule)
+          .withModuleSplitStyle(
+            ModuleSplitStyle.SmallModulesFor(List("bindgen.web"))
+          )
+      },
       libraryDependencies ++= Seq(
         "org.http4s"   %%% "http4s-dom"                  % V.http4sDom,
         "com.raquo"    %%% "laminar"                     % V.laminar,

@@ -91,6 +91,10 @@ COPY --from=dev /workdir/group /etc/group
 COPY --from=dev /workdir/empty_dir /usr/local/var/run/
 COPY --from=dev /workdir/empty_tmp_dir /tmp/
 
+# needed for fly.io hack to change owner of volume
+COPY --from=dev /usr/bin/bash /usr/bin/bash
+COPY --from=dev /bin/chown /bin/chown
+
 ## x86_64 specific files
 COPY --from=dev */lib/x86_64-linux-gnu/libm.so.6 /lib/x86_64-linux-gnu/libm.so.6
 COPY --from=dev */lib/x86_64-linux-gnu/libpcre2-8.so.0 /lib/x86_64-linux-gnu/libpcre2-8.so.0
@@ -154,5 +158,5 @@ ENV DB_PATH=/var/data/bindgen-web/data.db
 ENV LLVM_BIN=/usr/lib/llvm-14/bin
 ENV TEMP_PATH=/var/data/bindgen-web/tmp
 
-ENTRYPOINT [ "unitd", "--statedir", "statedir", "--log", "/dev/stdout", "--no-daemon" ]
+ENTRYPOINT [ "bash", "-c", "chown -R unit:unit /var/data/bindgen-web/ && unitd --no-daemon --log /dev/stdout" ]
 
