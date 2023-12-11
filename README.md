@@ -1,41 +1,63 @@
 ## Web app to generate Scala 3 Native bindings for C
 
+_Warning: this is currently not working and really should be a private repo, but I've run out of private GHA minutes so... here we are_
+
 <!--toc:start-->
 - [Web app to generate Scala 3 Native bindings for C](#web-app-to-generate-scala-3-native-bindings-for-c)
-  - [Quick start](#quick-start)
-  - [Local development](#local-development)
+  - [Quick start (Docker)](#quick-start-docker)
+  - [Local development (backend)](#local-development-backend)
+  - [Local development (frontend)](#local-development-frontend)
 <!--toc:end-->
-
-_Warning: unfortunately the app doesn't seem to currently work on Linux x86, which is where I want to deploy it on Fly.io. I've only made the repository public to invite some folks to take a look and see what am I missing. The app is very much work in progress, and so is the accompanying blog post._
-
-_For context, what doesn't work is the service started at port 9999 - you can verify that by hitting /api/health in the built container. On the other hand, the other service starts fine - you can verify that by hitting /health endpoint on the service responding at :8888_
 
 ![2023-05-29 12 01 15](https://github.com/indoorvivants/sn-bindgen-web/assets/1052965/85d0144c-f431-49e3-a45c-b644fc642cf7)
 
-### Quick start
+### Quick start (Docker)
 
-1. Install [Earthly](https://docs.earthly.dev) 
+**Warning: this will take some time, as we need to build NGINX Unit from scratch, and install LLVM. Sit back, have a beverage**
 
-2. Build a Docker Container
-    ```
-    earthly +docker
-    ```
-    **Warning: this will take some time, as we need to build NGINX Unit from scratch, and install LLVM. Sit back, have a beverage**
-3. Run it 
+- Build a docker container
+
+    Release version (slow):
 
     ```
-    docker run -p 9999:9999 bindgen-web:latest
+    $ docker build . --build-arg scalanative_mode=debug --build-arg scalanative_lto=none -t sn-bindgen-web
     ```
-4. Open `http://localhost:9999` and enjoy.
 
-### Local development
+    Debug version (slightly faster):
+
+    ```
+    $ docker build . --build-arg scalanative_mode=debug --build-arg scalanative_lto=none -t sn-bindgen-web
+    ```
+- Run it 
+
+    ```
+    docker run -p 9999:9999 sn-bindgen-web:latest
+    ```
+- Open `http://localhost:9999` and enjoy.
+
+### Local development (backend)
 
 1. Install NGINX Unit: https://unit.nginx.org/installation/
 2. Install LLVM: https://releases.llvm.org/
 3. Set `LLVM_BIN` env variable to the location of `bin` folder in LLVM installation
-4. Run `sbt deployLocally`
+4. Run `sbt devServer/run`
 
    **Warning: first run will be very slow. Subsequent ones will be somewhat slow.**
 
+   Alternatively, you can keep launch SBT and run `devServer/reStart` in there - this 
+   will make sure that your SBT shell remains usable, and the server will be run in the background.
+
 5. Open `http://localhost:9999` and enjoy.
+
+### Local development (frontend)
+
+The frontend module is set up using [Vite.js](https://vitejs.dev/).
+
+- `cd modules/frontend`
+- `npm install`
+- Run the backend (see above), it has to be running on port 9999 (default) 
+  as Vite is configured to proxy the `/api/*` requests to `http://localhost:9999/api/*`
+- In a separate SBT shell, run `~frontend/fastLinkJS` - this continuously rebuilds the Scala.js frontend
+- `npm run dev` - will run the Vite server 
+- Open http://localhost:5173 and you can now edit frontend without restarting the backend, with live reload
 

@@ -18,12 +18,12 @@ class JobServiceImpl(
     store.getBinding(id)
 
   override def getStatus(id: JobId): IO[GetStatusOutput] =
-    store.isCompleted(id).flatMap {
-      case true =>
+    store.getState(id).flatMap {
+      case Some(State.Completed) =>
         GetStatusOutput(
           bindgen.web.domain.Status.CompletedCase(Completed())
         ).pure[IO]
-      case false =>
+      case Some(State.Added) =>
         order.get.map { m =>
           GetStatusOutput(
             bindgen.web.domain.Status
@@ -32,6 +32,11 @@ class JobServiceImpl(
               )
           )
         }
+
+      case Some(State.Failed) =>
+        GetStatusOutput(
+          bindgen.web.domain.Status.FailedCase(Failed(message = None))
+        ).pure
     }
 
   override def submit(spec: BindingSpec): IO[SubmitOutput] =

@@ -74,7 +74,7 @@ RUN ldd build/worker
 RUN ldd /usr/lib/llvm-14/bin/clang
 
 
-FROM scratch
+FROM ubuntu:focal
 
 WORKDIR /workdir
 

@@ -14,4 +14,11 @@ object Log:
   end io
 
   export io.{debug, info, warn, error}
+
+  export scribe.{
+    info as infoUnsafe,
+    debug as debugUnsafe,
+    warn as warnUnsafe,
+    error as errorUnsafe
+  }
 end Log

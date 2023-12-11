@@ -1,29 +1,29 @@
 package bindgen.web.internal.jobs
 
-import java.util.UUID
-import opaque_newtypes.TotalWrapper
-import cats.effect.std.*
-import cats.effect.*
-import cats.syntax.all.*
-import bindgen.web.domain.JobId
-import concurrent.duration.*
-import bindgen.web.domain.*
-import fs2.io.file.Files
 import bindgen.rendering.RenderedOutput
+import bindgen.web.domain.JobId
+import bindgen.web.domain.*
+import cats.effect.*
+import cats.effect.std.*
+import cats.syntax.all.*
+import fs2.io.file.Files
 import fs2.io.file.Path
-import java.io.FileWriter
+import opaque_newtypes.TotalWrapper
+
 import java.io.File
+import java.util.UUID
+
+import concurrent.duration.*
 
 opaque type WorkerId = UUID
 object WorkerId extends TotalWrapper[WorkerId, UUID]
 
 class Worker private (id: WorkerId, store: Store, tempFolder: Option[Path]):
-  def process =
+  def process: Resource[IO, IO[OutcomeIO[Unit]]] =
     Queue.bounded[IO, JobId](100).toResource.flatMap { q =>
       val normalProcess =
         fs2.Stream
           .repeatEval(q.tryTake)
-          // .repeatEval(IO.pure(Option.empty))
           .meteredStartImmediately(1.second)
           .flatMap {
             case None =>
@@ -71,22 +71,26 @@ class Worker private (id: WorkerId, store: Store, tempFolder: Option[Path]):
       case Some(spec) =>
         generate(spec.packageName, spec.headerCode).attempt.flatMap {
           case Left(exc) =>
-            store.complete(
-              jobId,
-              Right(
-                ClangErrors(
-                  List(ClangError(severity = "error", message = exc.getMessage))
-                )
-              )
-            )
-          case Right(generatedCode) =>
-            store
-              .complete(
+            Log.info(s"Job $jobId finished processing with clang errors") *>
+              store.complete(
                 jobId,
-                Left(
-                  generatedCode
+                Right(
+                  ClangErrors(
+                    List(
+                      ClangError(severity = "error", message = exc.getMessage)
+                    )
+                  )
                 )
               )
+          case Right(generatedCode) =>
+            Log.info(s"Job $jobId finished successfully") *>
+              store
+                .complete(
+                  jobId,
+                  Left(
+                    generatedCode
+                  )
+                )
         }
 
     }
@@ -96,7 +100,7 @@ class Worker private (id: WorkerId, store: Store, tempFolder: Option[Path]):
     ZoneResource.useI {
       Log.info(s"temp folder: $tempFolder") *>
         Files[IO].tempFile(tempFolder, "", ".h", None).use { path =>
-          scribe.info(s"In path $path")
+          Log.infoUnsafe(s"In path $path")
           val writeFile =
             fs2.Stream
               .emit(code.value)
@@ -110,14 +114,16 @@ class Worker private (id: WorkerId, store: Store, tempFolder: Option[Path]):
               Seq("--llvm-bin", path)
             }
 
+          val bindgenArgs = Seq(
+            "--package",
+            packageName.value,
+            "--header",
+            path.toString,
+            "--render.no-location"
+          ) ++ llvmBin
+
           val parsed = CLI.command.parse(
-            Seq(
-              "--package",
-              packageName.value,
-              "--header",
-              path.toString,
-              "--render.no-location"
-            ) ++ llvmBin
+            bindgenArgs
           )
 
           parsed match
@@ -125,11 +131,20 @@ class Worker private (id: WorkerId, store: Store, tempFolder: Option[Path]):
               val (modified, code) =
                 if help.errors.nonEmpty then help.copy(body = Nil) -> -1
                 else help                                          -> 0
-              IO.raiseError(new RuntimeException(modified.toString))
+
+              Log.error(
+                s"Failed to create bindgen config invocation failed with $modified"
+              ) *>
+                IO.raiseError(new RuntimeException(modified.toString))
             case Right(config) =>
               given Config = config.copy(minLogPriority =
                 MinLogPriority(LogLevel.priority(LogLevel.trace))
               )
+
+              Log
+                .infoUnsafe(
+                  s"Invoking bindgen with `${bindgenArgs.mkString(" ")}`"
+                )
 
               def run(lang: Lang) =
                 IO(

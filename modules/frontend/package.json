@@ -1,0 +1,17 @@
+{
+  "name": "sn-bindgen-web-frontend",
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "serve": "vite preview"
+  },
+  "type": "module",
+  "devDependencies": {
+    "@scala-js/vite-plugin-scalajs": "^1.0.0",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.31",
+    "tailwindcss": "^3.3.5",
+    "vite": "^5.0.0"
+  }
+}

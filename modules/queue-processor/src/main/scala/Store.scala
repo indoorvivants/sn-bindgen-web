@@ -8,7 +8,6 @@ import porcupine.*
 import scodec.bits.ByteVector
 
 import java.util.UUID
-import scala.scalanative.unsafe.*
 import fs2.io.file.Files
 import fs2.io.file.Path
 
@@ -20,7 +19,7 @@ enum State:
 trait Store:
   def complete(id: JobId, code: Either[GeneratedCode, ClangErrors]): IO[Unit]
   def removeLease(workerId: WorkerId, jid: JobId): IO[Unit]
-  def isCompleted(jid: JobId): IO[Boolean]
+  def getState(jid: JobId): IO[Option[State]]
   def workSteal(workerId: WorkerId): fs2.Stream[IO, JobId]
   def createLeases(workerId: WorkerId, limit: Int): fs2.Stream[IO, JobId]
   def getOrdering(): IO[Map[JobId.Type, Int]]
@@ -86,12 +85,12 @@ class StoreImpl(db: Database[IO]) extends Store:
       (jid, workerId)
     )
 
-  override def isCompleted(jobId: JobId): IO[Boolean] =
+  override def getState(jobId: JobId): IO[Option[State]] =
     db.option(
-      sql"select id from bindings where state = ${C.state} and id = ${C.jobId}"
-        .query(C.jobId),
-      (State.Completed, jobId)
-    ).map(_.isDefined)
+      sql"select state from bindings where id = ${C.jobId}"
+        .query(C.state),
+      jobId
+    )
 
   val timeStream = fs2.Stream.eval(IO.realTimeInstant).map(_.getEpochSecond())
 

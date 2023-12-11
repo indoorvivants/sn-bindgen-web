@@ -32,7 +32,7 @@ def renderMainPage(using Api, Router[Page]) =
   var readyBindingState = Var(Option.empty[JobId])
 
   val updater = EventStream
-    .periodic(intervalMs = 1000)
+    .periodic(intervalMs = 300)
     .withCurrentValueOf(pollingState.signal)
     .map(_._2)
     .collect {
@@ -82,7 +82,7 @@ def renderMainPage(using Api, Router[Page]) =
 
           }
         },
-        child <-- pollingState.signal.map {
+        child <-- pollingState.signal.debugSpy(org.scalajs.dom.console.log(_)).map {
           case State.Fatal(msg) =>
             message(MsgType.Error, msg)
           case State.Fixable(msg) =>
@@ -115,8 +115,17 @@ def renderMainPage(using Api, Router[Page]) =
                 )
               )
             )
+          case State.Polling(_, Some(FailedCase(f: Failed))) =>
+            val msg = f.message match
+              case None        => "well, something! is broken"
+              case Some(value) => s"reason: $value"
 
-          case other => emptyNode
+            message(MsgType.Error, s"Processing failed: $msg")
+
+          case State.Polling(_, Some(NotFoundCase(_))) =>
+            message(MsgType.Error, "Binding doesn't exist")
+
+          case State.None => emptyNode
         },
         titleBlock("Package name"),
         input(
