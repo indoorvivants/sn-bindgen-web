@@ -18,6 +18,11 @@ jobs:
     
     - uses: superfly/flyctl-actions/setup-flyctl@master
 
+    - name: Build container
+      run: docker build . --build-arg scalanative_mode=debug --build-arg scalanative_lto=none -t sn-bindgen-web
+      if: "!(startsWith(github.ref, 'refs/tags/v') || (github.ref == 'refs/heads/main'))"
+
+
     - name: Deploy to fly.io
       run: "flyctl deploy -a sn-bindgen-web"
       if: startsWith(github.ref, 'refs/tags/v') || (github.ref == 'refs/heads/main')
