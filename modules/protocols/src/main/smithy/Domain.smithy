@@ -60,9 +60,11 @@ union Status {
   processing: Processing
   failed: Failed
   completed: Completed
+  notFound: NotFound
 }
 
 structure Completed{}
+structure NotFound{}
 
 structure Processing {
   remaining: Integer
