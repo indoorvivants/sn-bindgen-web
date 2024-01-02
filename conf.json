@@ -1,9 +1,9 @@
 {
   "listeners": {
-    "*:9999": {
+    "*:8080": {
       "pass": "routes/web"
     },
-    "*:8888": {
+    "*:8081": {
       "pass": "routes/worker"
     }
   },
@@ -37,7 +37,7 @@
       },
       {
         "action": {
-          "share": "stati/index.html"
+          "share": "static/index.html"
         }
       }
     ]
@@ -45,8 +45,8 @@
   "applications": {
     "worker": {
       "processes": {
-        "max": 4,
-        "spare": 4
+        "max": 2,
+        "spare": 2
       },
       "type": "external",
       "executable": "worker"
@@ -54,6 +54,7 @@
     "web": {
       "processes": {
         "max": 2,
+        "spare": 1,
         "idle_timeout": 180
       },
       "type": "external",

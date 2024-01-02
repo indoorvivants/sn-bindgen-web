@@ -55,14 +55,16 @@ object app extends snunit.Http4sApp:
 
     val jobIdIssuer = IO.ref(Map.empty[JobId, Int]).toResource
 
-    (queue, store, jobIdIssuer, tempPath).parTupled.flatMap {
-      (queue, store, issuer, tempPath) =>
+    val config = RuntimeConfig.fromEnv.toResource
+
+    (queue, store, jobIdIssuer, tempPath, config).parTupled.flatMap {
+      (queue, store, issuer, tempPath, config) =>
         Worker
           .create(
             store,
-            tempPath
+            tempPath,
+            config
           )
-          .toResource
           .flatMap(_.process) *>
           submitter(queue, store).compile.drain.background *>
           orderingRefresh(issuer, store).compile.drain.background *>

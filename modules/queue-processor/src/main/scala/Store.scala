@@ -10,6 +10,7 @@ import scodec.bits.ByteVector
 import java.util.UUID
 import fs2.io.file.Files
 import fs2.io.file.Path
+import scala.concurrent.duration.FiniteDuration
 
 enum State:
   case Added
@@ -20,7 +21,11 @@ trait Store:
   def complete(id: JobId, code: Either[GeneratedCode, ClangErrors]): IO[Unit]
   def removeLease(workerId: WorkerId, jid: JobId): IO[Unit]
   def getState(jid: JobId): IO[Option[State]]
-  def workSteal(workerId: WorkerId): fs2.Stream[IO, JobId]
+  def workSteal(
+      workerId: WorkerId,
+      limit: Int,
+      staleness: FiniteDuration
+  ): fs2.Stream[IO, JobId]
   def createLeases(workerId: WorkerId, limit: Int): fs2.Stream[IO, JobId]
   def getOrdering(): IO[Map[JobId.Type, Int]]
   def record(spec: BindingSpec): IO[JobId]
@@ -94,16 +99,20 @@ class StoreImpl(db: Database[IO]) extends Store:
 
   val timeStream = fs2.Stream.eval(IO.realTimeInstant).map(_.getEpochSecond())
 
-  override def workSteal(workerId: WorkerId): fs2.Stream[IO, JobId] =
+  override def workSteal(
+      workerId: WorkerId,
+      limit: Int,
+      staleness: FiniteDuration
+  ): fs2.Stream[IO, JobId] =
     timeStream.flatMap { instant =>
       db.stream(
         sql"""
         | update leases set worker_id = ${C.workerId} where binding_id 
-        |  in (select binding_id from leases where ($integer - checked_in_at > 60) limit 5)
+        |  in (select binding_id from leases where ($integer - checked_in_at > $integer) limit $integer)
         |  returning binding_id
         """.stripMargin.query(C.jobId),
-        (workerId, instant),
-        1024
+        (workerId, instant, staleness.toSeconds, limit),
+        limit
       )
     }
   end workSteal

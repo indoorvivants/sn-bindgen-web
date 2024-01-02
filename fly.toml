@@ -7,9 +7,6 @@ app = "sn-bindgen-web"
 kill_signal = "SIGINT"
 kill_timeout = 5
 primary_region = "lhr"
-processes = []
-
-[env]
 
 [mounts]
   source="sn_bindgen_web_data"
@@ -18,40 +15,20 @@ processes = []
 [experimental]
   auto_rollback = true
 
-[[services]]
-  internal_port = 9999
-  protocol = "tcp"
+[http_service]
+  internal_port = 8080
   force_https = true
   auto_stop_machines = true
   auto_start_machines = true
-  min_machines_running = 0  
+  min_machines_running = 0
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 200
+    hard_limit = 250
 
-[services.concurrency]
-  hard_limit = 25
-  soft_limit = 20
-  type = "connections"
-
-[[services.ports]]
-  force_https = true
-  handlers = ["http"]
-  port = 80
-
-[[services.ports]]
-  handlers = ["tls", "http"]
-  port = 443
-
-[[services.tcp_checks]]
-  grace_period = "1s"
-  interval = "15s"
-  restart_limit = 0
-  timeout = "2s"
-
-[[services.http_checks]]
-  interval = 10000
-  grace_period = "5s"
-  method = "get"
+[[http_service.checks]]
+  grace_period = "10s"
+  interval = "30s"
+  method = "GET"
+  timeout = "5s"
   path = "/api/health"
-  protocol = "http"
-  timeout = 2000
-  tls_skip_verify = false
-

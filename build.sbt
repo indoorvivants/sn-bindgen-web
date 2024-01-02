@@ -28,6 +28,8 @@ val V = new {
   val waypoint = "7.0.0"
 
   val http4sDom = "0.2.10"
+
+  val bindgen = "0.0.23+5-ab40fca8-SNAPSHOT"
 }
 
 val isScala3 = Seq(VirtualAxis.scalaABIVersion(V.Scala))
@@ -156,7 +158,8 @@ lazy val `queue-processor` =
       remoteCache,
       vcpkgSettings,
       bindgenBinary := file(".no"),
-      libraryDependencies += ("com.indoorvivants" % "bindgen_native0.4_3" % "0.0.22")
+      resolvers += Resolver.sonatypeRepo("snapshots"),
+      libraryDependencies += ("com.indoorvivants" % "bindgen_native0.4_3" % V.bindgen)
         .classifier(""),
       libraryDependencies += "io.circe" %%% "circe-parser" % V.circe,
       libraryDependencies += "com.indoorvivants" %%% "opaque-newtypes" % V.opaqueNewtypes, // SBT
@@ -419,6 +422,7 @@ lazy val devServer = project
       "UNITD_COMMAND" -> UNITD_LOCAL_COMMAND,
       "SERVER_CWD"    -> ((ThisBuild / baseDirectory).value / "build").toString,
       "WORKER_HOST"   -> "http://localhost:8888",
-      "DB_PATH" -> ((ThisBuild / baseDirectory).value / "data" / "worker.db").toString
+      "DB_PATH" -> ((ThisBuild / baseDirectory).value / "data" / "worker.db").toString,
+      "LLVM_BIN" -> "/opt/homebrew/opt/llvm@14/bin"
     )
   )
