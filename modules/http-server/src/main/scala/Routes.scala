@@ -21,6 +21,7 @@ object app extends snunit.Http4sApp:
   def routes =
     val service = Env[IO].get("WORKER_HOST").toResource.flatMap {
       case Some(host) =>
+        System.err.println(s"Starting web server against $host worker")
         BindgenServiceImpl.create(Uri.unsafeFromString(host))
 
       case None =>
