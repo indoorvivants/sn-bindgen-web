@@ -18,7 +18,9 @@ enum SubmissionResult:
 object app extends snunit.Http4sApp:
   def handleErrors(routes: HttpRoutes[IO]) =
     routes.orNotFound.onError { exc =>
-      Kleisli(request => Log.error("Request failed", request.toString, exc))
+      Kleisli(request =>
+        Log.error("WORKER: Request failed", request.toString, exc)
+      )
     }
 
   def routes =

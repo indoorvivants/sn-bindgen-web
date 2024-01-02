@@ -39,4 +39,5 @@ object BindgenServiceImpl:
           .resource
       )
       .map(BindgenServiceImpl(_))
+
 end BindgenServiceImpl

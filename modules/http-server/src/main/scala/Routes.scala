@@ -14,6 +14,8 @@ import cats.effect.std.Env
 import bindgen.web.internal.jobs.JobServiceGen
 import bindgen.web.api.SubmitOutput
 import java.nio.file.Paths
+import cats.syntax.all.*
+import cats.data.Kleisli
 
 object app extends snunit.Http4sApp:
   def routes =
@@ -27,11 +29,19 @@ object app extends snunit.Http4sApp:
             "WORKER_HOST environment variable is not set, cannot establish connection to the worker"
           )
         ).toResource
+          .onError(err => Log.error("Worker cannot be started", err).toResource)
     }
 
     service.flatMap { impl =>
-      SimpleRestJsonBuilder.routes(impl).resource.map(_.orNotFound)
+      SimpleRestJsonBuilder.routes(impl).resource.map(handleErrors)
     }
   end routes
+
+  def handleErrors(routes: HttpRoutes[IO]) =
+    routes.orNotFound.onError { exc =>
+      Kleisli(request =>
+        Log.error("WEB: Request failed", request.toString, exc)
+      )
+    }
 
 end app

@@ -153,7 +153,7 @@ COPY --from=dev */lib/x86_64-linux-gnu/libicudata.so.70 /lib/x86_64-linux-gnu/
 COPY --from=dev /usr/lib/llvm-14/bin/ /usr/lib/llvm-14/bin/
 
 
-ENV WORKER_HOST=http://localhost:8888
+ENV WORKER_HOST=http://localhost:8081
 ENV DB_PATH=/var/data/bindgen-web/data.db
 ENV LLVM_BIN=/usr/lib/llvm-14/bin
 ENV TEMP_PATH=/var/data/bindgen-web/tmp
