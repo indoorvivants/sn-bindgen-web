@@ -71,6 +71,20 @@ structure Processing {
 }
 
 structure Failed {
+  @required
+  message: String,
+  diagnostics: DiagList
+}
+
+list DiagList {
+  member: Diag
+}
+
+structure Diag {
+  @required
+  severity: String,
+
+  @required
   message: String
 }
 

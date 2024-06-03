@@ -5,7 +5,7 @@ import org.scalajs.linker.interface.ModuleSplitStyle
 val V = new {
   val Scala = "3.5.0-RC1"
 
-  val snunit = "0.9.0"
+  val snunit = "0.8.0"
 
   val snCrypto = "0.0.4"
 
@@ -17,7 +17,7 @@ val V = new {
 
   val opaqueNewtypes = "0.0.2"
 
-  val porcupine = "0.0.1"
+  val skunk = "1.0.0-M6"
 
   val macroTaskExecutor = "1.1.1"
 
@@ -109,6 +109,7 @@ lazy val `http-server` =
       libraryDependencies += "com.outr"   %%% "scribe-cats"         % V.scribe,
       nativeConfig ~= { _.withIncrementalCompilation(true) },
       scalacOptions += "-Wunused:all",
+      scalacOptions += "-P:scalanative:genStaticForwardersForNonTopLevelObjects",
       vcpkgSettings,
       remoteCache
     )
@@ -134,15 +135,13 @@ lazy val bindings =
         val configurator = vcpkgConfigurator.value
         import bindgen.interface.*
         Seq(
-          Binding
-            .builder(configurator.includes("zstd") / "zstd.h", "zstd")
+          Binding(configurator.includes("zstd") / "zstd.h", "zstd")
             .withCImports(List("zstd.h"))
             .withClangFlags(
               List(
                 "-I" + configurator.includes("zstd").toString
               )
             )
-            .build
         )
       }
     )
@@ -165,10 +164,11 @@ lazy val `queue-processor` =
       libraryDependencies += "com.indoorvivants" %%% "opaque-newtypes" % V.opaqueNewtypes, // SBT
       libraryDependencies += "com.github.lolgab" %%% "snunit-http4s0.23" % V.snunit,
       libraryDependencies += "com.github.lolgab" %%% "scala-native-crypto" % V.snCrypto,
-      libraryDependencies += "com.outr"       %%% "scribe-cats" % V.scribe,
-      libraryDependencies += "org.http4s"     %%% "http4s-dsl"  % V.http4s,
-      libraryDependencies += "com.armanbilge" %%% "porcupine"   % V.porcupine,
-      nativeConfig ~= { _.withIncrementalCompilation(true) },
+      libraryDependencies += "com.outr"     %%% "scribe-cats" % V.scribe,
+      libraryDependencies += "org.http4s"   %%% "http4s-dsl"  % V.http4s,
+      libraryDependencies += "org.tpolecat" %%% "skunk-core"  % V.skunk,
+      libraryDependencies += "dev.rolang"   %%% "dumbo"       % "0.3.3",
+      nativeConfig ~= { _.withIncrementalCompilation(true).withEmbedResources(true) },
       nativeConfig ~= usesLibClang,
       scalacOptions += "-Wunused:all"
     )
@@ -190,6 +190,21 @@ ThisBuild / buildApp := {
   locally { buildWeb.value }
   locally { buildWorker.value }
   locally { buildFrontend.value }
+
+  val dest     = (ThisBuild / baseDirectory).value / "build"
+  val statedir = dest / "statedir"
+  IO.createDirectory(statedir)
+
+  IO.copyFile(dest.getParentFile() / "conf.json", statedir / "conf.json")
+
+  dest
+
+}
+
+val buildBackend = taskKey[File]("")
+ThisBuild / buildBackend := {
+  locally { buildWeb.value }
+  locally { buildWorker.value }
 
   val dest     = (ThisBuild / baseDirectory).value / "build"
   val statedir = dest / "statedir"
@@ -418,11 +433,11 @@ lazy val devServer = project
     fork         := true,
     scalaVersion := V.Scala,
     envVars ++= Map(
-      "SERVER_BINARY" -> (ThisBuild / buildApp).value.toString,
+      "SERVER_BINARY" -> (ThisBuild / buildBackend).value.toString,
       "UNITD_COMMAND" -> UNITD_LOCAL_COMMAND,
       "SERVER_CWD"    -> ((ThisBuild / baseDirectory).value / "build").toString,
       "WORKER_HOST"   -> "http://localhost:8081",
-      "DB_PATH" -> ((ThisBuild / baseDirectory).value / "data" / "worker.db").toString,
-      "LLVM_BIN" -> "/opt/homebrew/opt/llvm@14/bin"
+      // "DB_PATH" -> ((ThisBuild / baseDirectory).value / "data" / "worker.db").toString,
+      "LLVM_BIN" -> "/opt/homebrew/opt/llvm@17/bin"
     )
   )

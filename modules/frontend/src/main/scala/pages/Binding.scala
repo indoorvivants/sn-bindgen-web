@@ -37,6 +37,18 @@ private def renderBinding(gb: GeneratedBinding, showSource: Boolean) =
     }
   )
 
+def renderFailed(failed: Failed) =
+  val diags =
+    Option.when(failed.diagnostics.getOrElse(Nil).nonEmpty):
+      ul(
+        failed.diagnostics
+          .getOrElse(Nil)
+          .map: diag =>
+            li(b(diag.severity), ": ", diag.message)
+      )
+  div(b(s"Failed: ${failed.message}"), diags)
+end renderFailed
+
 def renderBindingId(idSignal: Observable[JobId], showSource: Boolean)(using
     Api
 ) =
@@ -62,7 +74,7 @@ def renderBindingId(idSignal: Observable[JobId], showSource: Boolean)(using
                 }
 
               case FailedCase(failed) =>
-                Signal.fromValue(b(s"Failed: ${failed.message}"))
+                Signal.fromValue(renderFailed(failed))
               case CompletedCase(completed) =>
                 api.signal(_.users.getBinding(id)).map {
                   case None => i("gimme a minute")

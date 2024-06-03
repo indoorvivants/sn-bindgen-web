@@ -116,11 +116,9 @@ def renderMainPage(using Api, Router[Page]) =
               )
             )
           case State.Polling(_, Some(FailedCase(f: Failed))) =>
-            val msg = f.message match
-              case None        => "well, something! is broken"
-              case Some(value) => s"reason: $value"
+            val msg = f.message
 
-            message(MsgType.Error, s"Processing failed: $msg")
+            message(MsgType.Error, renderFailed(f))
 
           case State.Polling(_, Some(NotFoundCase(_))) =>
             message(MsgType.Error, "Binding doesn't exist")

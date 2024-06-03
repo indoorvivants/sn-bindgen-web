@@ -1,7 +1,7 @@
 package bindgen.web.internal.jobs
 
+import bindgen.*
 import bindgen.rendering.RenderedOutput
-import bindgen.web.domain.JobId
 import bindgen.web.domain.*
 import cats.effect.*
 import cats.effect.std.*
@@ -12,11 +12,6 @@ import opaque_newtypes.TotalWrapper
 
 import java.io.File
 import java.util.UUID
-
-import bindgen.*
-
-import cats.effect.syntax.all.*
-import cats.syntax.all.*
 
 opaque type WorkerId = UUID
 object WorkerId extends TotalWrapper[WorkerId, UUID]
@@ -40,13 +35,15 @@ class Worker private (
                 .createLeases(id, config.leaseLimit)
                 .evalTap(jobId => Log.info(s"Worker $id is leasing job $jobId"))
 
-              val stolen = store
-                .workSteal(id, config.workStealLimit, config.jobStaleness)
-                .evalTap(jobId =>
-                  Log.info(s"Worker $id is stealing old job $jobId")
-                )
+              val stolen = fs2.Stream.evalSeq(
+                store
+                  .workSteal(id, config.workStealLimit, config.jobStaleness)
+                  .flatTap(jobId =>
+                    Log.info(s"Worker $id is stealing jobs $jobId")
+                  )
+              )
 
-              (unprocessed ++ stolen).attempt
+              (unprocessed /*++ stolen*/ ).attempt
                 .collect { case Right(jid) => jid }
                 .evalMap(q.offer)
 
@@ -83,22 +80,14 @@ class Worker private (
             Log.info(s"Job $jobId finished processing with clang errors") *>
               store.complete(
                 jobId,
-                Right(
-                  ClangErrors(
-                    List(
-                      ClangError(severity = "error", message = exc.getMessage)
-                    )
-                  )
-                )
+                BindgenResult.Error(exc.getMessage())
               )
           case Right(generatedCode) =>
             Log.info(s"Job $jobId finished successfully") *>
               store
                 .complete(
                   jobId,
-                  Left(
-                    generatedCode
-                  )
+                  generatedCode
                 )
         }
 
@@ -127,31 +116,34 @@ class Worker private (
               )
 
             IO(
-              IO.fromEither(
-                driver
-                  .createBinding(
-                    context,
-                    OutputMode.StdOut
-                  )
-                  .leftMap(err =>
-                    new RuntimeException(s"Binding error: [${err.render}]")
-                  )
-              )
-            ).flatten
+              driver
+                .createBinding(
+                  context,
+                  OutputMode.StdOut
+                )
+            )
           end run
 
           val scalaResult =
-            run(Lang.Scala).map { case RenderedOutput.Single(lb) =>
-              ScalaCode(lb.result)
+            run(Lang.Scala).map {
+              _.map { case RenderedOutput.Single(lb) =>
+                ScalaCode(lb.result)
+              }
             }
 
           val cResult =
-            run(Lang.C).map { case RenderedOutput.Single(lb) =>
-              val res = lb.result
-              Option.when(res.nonEmpty)(GlueCode(res))
+            run(Lang.C).map {
+              _.map { case RenderedOutput.Single(lb) =>
+                val res = lb.result
+                Option.when(res.nonEmpty)(GlueCode(res))
+              }
             }
 
-          val result = (scalaResult, cResult).mapN(GeneratedCode.apply)
+          val result = (scalaResult, cResult).mapN:
+            case (Left(err), _) => BindgenResult.adapt(err)
+            case (_, Left(err)) => BindgenResult.adapt(err)
+            case (Right(scala), Right(glue)) =>
+              BindgenResult.Success(GeneratedCode(scala, glue))
 
           writeFile *> result
         }
@@ -204,3 +196,4 @@ object Worker:
   end driverInit
 
 end Worker
+

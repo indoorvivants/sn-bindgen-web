@@ -34,9 +34,19 @@ class JobServiceImpl(
         }
 
       case Some(State.Failed) =>
-        GetStatusOutput(
-          bindgen.web.domain.BindingStatus.FailedCase(Failed(message = None))
-        ).pure
+        store
+          .getFailure(id)
+          .map: f =>
+            GetStatusOutput(
+              bindgen.web.domain.BindingStatus
+                .FailedCase(
+                  Failed(
+                    message = f.get.message,
+                    diagnostics =
+                      f.map(_.diags.map(rv => Diag(rv.severity, rv.msg)))
+                  )
+                )
+            )
     }
 
   override def submit(spec: BindingSpec): IO[SubmitOutput] =
