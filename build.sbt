@@ -3,17 +3,17 @@ import scala.scalanative.build.Mode
 import org.scalajs.linker.interface.ModuleSplitStyle
 
 val V = new {
-  val Scala = "3.3.1"
+  val Scala = "3.5.0-RC1"
 
-  val snunit = "0.7.2"
+  val snunit = "0.9.0"
 
   val snCrypto = "0.0.4"
 
-  val http4s = "0.23.24"
+  val http4s = "0.23.27"
 
   val fs2 = "3.6.1"
 
-  val scribe = "3.12.2"
+  val scribe = "3.13.2"
 
   val opaqueNewtypes = "0.0.2"
 
@@ -21,15 +21,15 @@ val V = new {
 
   val macroTaskExecutor = "1.1.1"
 
-  val laminar = "16.0.0"
+  val laminar = "17.0.0"
 
-  val circe = "0.14.6"
+  val circe = "0.14.7"
 
-  val waypoint = "7.0.0"
+  val waypoint = "8.0.0"
 
-  val http4sDom = "0.2.10"
+  val http4sDom = "0.2.11"
 
-  val bindgen = "0.0.23+5-ab40fca8-SNAPSHOT"
+  val bindgen = "0.1.2"
 }
 
 val isScala3 = Seq(VirtualAxis.scalaABIVersion(V.Scala))
@@ -404,7 +404,7 @@ runServer := {
   val proc = Process(
     UNITD_LOCAL_COMMAND,
     cwd = dest,
-    "WORKER_HOST" -> "http://localhost:8888",
+    "WORKER_HOST" -> "http://localhost:8081",
     "DB_PATH"     -> data.toString
   )
 
@@ -421,7 +421,7 @@ lazy val devServer = project
       "SERVER_BINARY" -> (ThisBuild / buildApp).value.toString,
       "UNITD_COMMAND" -> UNITD_LOCAL_COMMAND,
       "SERVER_CWD"    -> ((ThisBuild / baseDirectory).value / "build").toString,
-      "WORKER_HOST"   -> "http://localhost:8888",
+      "WORKER_HOST"   -> "http://localhost:8081",
       "DB_PATH" -> ((ThisBuild / baseDirectory).value / "data" / "worker.db").toString,
       "LLVM_BIN" -> "/opt/homebrew/opt/llvm@14/bin"
     )

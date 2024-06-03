@@ -1,21 +1,13 @@
 package bindgen.web
 
-import api.*
-
-import cats.effect.*
-import org.http4s.*
-import org.http4s.dsl.io.*
-import smithy4s.http4s.SimpleRestJsonBuilder
-import bindgen.web.domain.*
-import cats.effect.std.UUIDGen
-import org.http4s.ember.client.EmberClientBuilder
-import bindgen.web.internal.jobs.JobService
-import cats.effect.std.Env
-import bindgen.web.internal.jobs.JobServiceGen
-import bindgen.web.api.SubmitOutput
-import java.nio.file.Paths
-import cats.syntax.all.*
 import cats.data.Kleisli
+import cats.effect.*
+import cats.effect.std.Env
+import cats.syntax.all.*
+import org.http4s.*
+import smithy4s.http4s.SimpleRestJsonBuilder
+
+import api.*
 
 object app extends snunit.Http4sApp:
   def routes =

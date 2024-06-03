@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y curl build-essential libpcre2-dev
 RUN curl -O https://unit.nginx.org/download/unit-$UNIT_VERSION.tar.gz && tar xzf unit-$UNIT_VERSION.tar.gz
 RUN mv unit-$UNIT_VERSION unit
 RUN cd unit && \
-    ./configure --log=/dev/stderr --user=unit --group=unit --statedir=statedir && \
+    ./configure --no-ipv6 --log=/dev/stderr --user=unit --group=unit --statedir=statedir && \
     make build/sbin/unitd && \
     make build/lib/libunit.a && \
     install -p build/lib/libunit.a /usr/local/lib/libunit.a && \
@@ -41,7 +41,7 @@ RUN apt update && apt install -y lsb-release wget software-properties-common gnu
   # install LLVM and libclang
   curl -Lo llvm.sh https://apt.llvm.org/llvm.sh && \
   chmod +x llvm.sh && \
-  ./llvm.sh 14 && \
+  ./llvm.sh 17 && \
   apt update && \
   apt install -y libclang-14-dev
 
@@ -71,7 +71,7 @@ RUN chown unit:unit build/worker
 RUN chown unit:unit empty_tmp_dir
 
 RUN ldd build/worker
-RUN ldd /usr/lib/llvm-14/bin/clang
+RUN ldd /usr/lib/llvm-17/bin/clang
 
 
 FROM ubuntu:focal
@@ -103,7 +103,7 @@ COPY --from=dev /bin/chown /bin/chown
 # COPY --from=dev */lib/x86_64-linux-gnu/libc.so.6 /lib/x86_64-linux-gnu/libc.so.6
 # COPY --from=dev */lib64/ld-linux-x86-64.so.2 /lib64/ld-linux-x86-64.so.2
 
-# ## aarch64 speicific files
+# # ## aarch64 speicific files
 # COPY --from=dev */lib/aarch64-linux-gnu/libm.so.6 /lib/aarch64-linux-gnu/libm.so.6
 # COPY --from=dev */lib/aarch64-linux-gnu/libpcre2-8.so.0 /lib/aarch64-linux-gnu/libpcre2-8.so.0
 # COPY --from=dev */lib/aarch64-linux-gnu/libcrypto.so.3 /lib/aarch64-linux-gnu/libcrypto.so.3
@@ -117,45 +117,45 @@ COPY --from=dev /bin/chown /bin/chown
 # COPY --from=dev */lib/x86_64-linux-gnu/libstdc++.so.6 /lib/x86_64-linux-gnu/libstdc++.so.6
 # COPY --from=dev */lib/x86_64-linux-gnu/libgcc_s.so.1 /lib/x86_64-linux-gnu/libgcc_s.so.1
 
-# ## aarch64 speicific files
+# # ## aarch64 speicific files
 # COPY --from=dev */lib/aarch64-linux-gnu/libstdc++.so.6 /lib/aarch64-linux-gnu/libstdc++.so.6
 # COPY --from=dev */lib/aarch64-linux-gnu/libgcc_s.so.1 /lib/aarch64-linux-gnu/libgcc_s.so.1
 
 # LLVM shared libraries
-COPY --from=dev */lib/aarch64-linux-gnu/libclang-14.so.13 /lib/aarch64-linux-gnu/
-COPY --from=dev */lib/aarch64-linux-gnu/libclang-cpp.so.14 /lib/aarch64-linux-gnu/
-COPY --from=dev */lib/aarch64-linux-gnu/libLLVM-14.so.1 /lib/aarch64-linux-gnu/
-COPY --from=dev */lib/aarch64-linux-gnu/libffi.so.8 /lib/aarch64-linux-gnu/
-COPY --from=dev */lib/aarch64-linux-gnu/libedit.so.2 /lib/aarch64-linux-gnu/
-COPY --from=dev */lib/aarch64-linux-gnu/libz.so.1 /lib/aarch64-linux-gnu/
-COPY --from=dev */lib/aarch64-linux-gnu/libtinfo.so.6 /lib/aarch64-linux-gnu/
-COPY --from=dev */lib/aarch64-linux-gnu/libxml2.so.2 /lib/aarch64-linux-gnu/
-COPY --from=dev */lib/aarch64-linux-gnu/libbsd.so.0 /lib/aarch64-linux-gnu/
-COPY --from=dev */lib/aarch64-linux-gnu/libicuuc.so.70 /lib/aarch64-linux-gnu/
-COPY --from=dev */lib/aarch64-linux-gnu/liblzma.so.5 /lib/aarch64-linux-gnu/
-COPY --from=dev */lib/aarch64-linux-gnu/libmd.so.0 /lib/aarch64-linux-gnu/
-COPY --from=dev */lib/aarch64-linux-gnu/libicudata.so.70 /lib/aarch64-linux-gnu/
+COPY --from=dev */lib/aarch64-linux-gnu/libclang-17.so.* /lib/aarch64-linux-gnu/
+COPY --from=dev */lib/aarch64-linux-gnu/libclang-cpp.so.* /lib/aarch64-linux-gnu/
+COPY --from=dev */lib/aarch64-linux-gnu/libLLVM-17.so.1 /lib/aarch64-linux-gnu/
+COPY --from=dev */lib/aarch64-linux-gnu/libffi.so.* /lib/aarch64-linux-gnu/
+COPY --from=dev */lib/aarch64-linux-gnu/libedit.so.* /lib/aarch64-linux-gnu/
+COPY --from=dev */lib/aarch64-linux-gnu/libz.so.* /lib/aarch64-linux-gnu/
+COPY --from=dev */lib/aarch64-linux-gnu/libtinfo.so.* /lib/aarch64-linux-gnu/
+COPY --from=dev */lib/aarch64-linux-gnu/libxml2.so.* /lib/aarch64-linux-gnu/
+COPY --from=dev */lib/aarch64-linux-gnu/libbsd.so.* /lib/aarch64-linux-gnu/
+COPY --from=dev */lib/aarch64-linux-gnu/libicuuc.so.* /lib/aarch64-linux-gnu/
+COPY --from=dev */lib/aarch64-linux-gnu/liblzma.so.* /lib/aarch64-linux-gnu/
+COPY --from=dev */lib/aarch64-linux-gnu/libmd.so.* /lib/aarch64-linux-gnu/
+COPY --from=dev */lib/aarch64-linux-gnu/libicudata.so.* /lib/aarch64-linux-gnu/
 
-COPY --from=dev */lib/x86_64-linux-gnu/libclang-14.so.13 /lib/x86_64-linux-gnu/
-COPY --from=dev */lib/x86_64-linux-gnu/libclang-cpp.so.14 /lib/x86_64-linux-gnu/
-COPY --from=dev */lib/x86_64-linux-gnu/libLLVM-14.so.1 /lib/x86_64-linux-gnu/
-COPY --from=dev */lib/x86_64-linux-gnu/libffi.so.8 /lib/x86_64-linux-gnu/
-COPY --from=dev */lib/x86_64-linux-gnu/libedit.so.2 /lib/x86_64-linux-gnu/
-COPY --from=dev */lib/x86_64-linux-gnu/libz.so.1 /lib/x86_64-linux-gnu/
-COPY --from=dev */lib/x86_64-linux-gnu/libtinfo.so.6 /lib/x86_64-linux-gnu/
-COPY --from=dev */lib/x86_64-linux-gnu/libxml2.so.2 /lib/x86_64-linux-gnu/
-COPY --from=dev */lib/x86_64-linux-gnu/libbsd.so.0 /lib/x86_64-linux-gnu/
-COPY --from=dev */lib/x86_64-linux-gnu/libicuuc.so.70 /lib/x86_64-linux-gnu/
-COPY --from=dev */lib/x86_64-linux-gnu/liblzma.so.5 /lib/x86_64-linux-gnu/
-COPY --from=dev */lib/x86_64-linux-gnu/libmd.so.0 /lib/x86_64-linux-gnu/
-COPY --from=dev */lib/x86_64-linux-gnu/libicudata.so.70 /lib/x86_64-linux-gnu/
+COPY --from=dev */lib/x86_64-linux-gnu/libclang-17.so.* /lib/x86_64-linux-gnu/
+COPY --from=dev */lib/x86_64-linux-gnu/libclang-cpp.so.* /lib/x86_64-linux-gnu/
+COPY --from=dev */lib/x86_64-linux-gnu/libLLVM-14.so.* /lib/x86_64-linux-gnu/
+COPY --from=dev */lib/x86_64-linux-gnu/libffi.so.* /lib/x86_64-linux-gnu/
+COPY --from=dev */lib/x86_64-linux-gnu/libedit.so.* /lib/x86_64-linux-gnu/
+COPY --from=dev */lib/x86_64-linux-gnu/libz.so.* /lib/x86_64-linux-gnu/
+COPY --from=dev */lib/x86_64-linux-gnu/libtinfo.so.* /lib/x86_64-linux-gnu/
+COPY --from=dev */lib/x86_64-linux-gnu/libxml2.so.* /lib/x86_64-linux-gnu/
+COPY --from=dev */lib/x86_64-linux-gnu/libbsd.so.* /lib/x86_64-linux-gnu/
+COPY --from=dev */lib/x86_64-linux-gnu/libicuuc.so.* /lib/x86_64-linux-gnu/
+COPY --from=dev */lib/x86_64-linux-gnu/liblzma.so.* /lib/x86_64-linux-gnu/
+COPY --from=dev */lib/x86_64-linux-gnu/libmd.so.* /lib/x86_64-linux-gnu/
+COPY --from=dev */lib/x86_64-linux-gnu/libicudata.so.* /lib/x86_64-linux-gnu/
 
-COPY --from=dev /usr/lib/llvm-14/bin/ /usr/lib/llvm-14/bin/
+COPY --from=dev /usr/lib/llvm-17/bin/clang /usr/lib/llvm-17/bin/
 
 
 ENV WORKER_HOST=http://localhost:8081
 ENV DB_PATH=/var/data/bindgen-web/data.db
-ENV LLVM_BIN=/usr/lib/llvm-14/bin
+ENV LLVM_BIN=/usr/lib/llvm-17/bin
 ENV TEMP_PATH=/var/data/bindgen-web/tmp
 
 ENTRYPOINT [ "bash", "-c", "chown -R unit:unit /var/data/bindgen-web/ && unitd --no-daemon --log /dev/stdout" ]

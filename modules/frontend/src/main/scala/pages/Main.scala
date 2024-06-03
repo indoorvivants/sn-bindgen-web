@@ -6,13 +6,13 @@ import com.raquo.waypoint.Router
 import scalajs.js
 import org.scalajs.dom
 import org.scalajs.macrotaskexecutor.MacrotaskExecutor.Implicits.*
-import bindgen.web.domain.Status.*
+import bindgen.web.domain.BindingStatus.*
 
 enum State:
   case None
   case Fatal(msg: String)
   case Fixable(msg: String)
-  case Polling(id: JobId, st: Option[Status])
+  case Polling(id: JobId, st: Option[BindingStatus])
 
 def renderMainPage(using Api, Router[Page]) =
   val sampleCode =
@@ -37,10 +37,10 @@ def renderMainPage(using Api, Router[Page]) =
     .map(_._2)
     .collect {
 
-      case State.Polling(id, None)                           => id
-      case State.Polling(id, Some(Status.ProcessingCase(_))) => id
+      case State.Polling(id, None)                    => id
+      case State.Polling(id, Some(ProcessingCase(_))) => id
     }
-    .flatMap { id =>
+    .flatMapSwitch { id =>
       api.stream(
         _.users
           .getStatus(id)

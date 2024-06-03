@@ -1,13 +1,11 @@
 package bindgen.web.internal.jobs
 
-import bindgen.web.domain.JobId
-import fs2.io.file.Files
-import cats.effect.*
-import scala.scalanative.unsafe.*
-import scala.scalanative.unsigned.*
-import scala.scalanative.runtime.libc
 import scodec.bits.ByteVector
 import zstd.all.*
+
+import scala.scalanative.runtime.libc
+import scala.scalanative.unsafe.*
+import scala.scalanative.unsigned.*
 
 object Compression:
   // adapted from https://github.com/facebook/zstd/blob/dev/examples/simple_compression.c

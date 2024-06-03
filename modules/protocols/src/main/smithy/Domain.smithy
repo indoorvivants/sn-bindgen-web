@@ -56,7 +56,7 @@ structure ClangError {
   message: String
 }
 
-union Status {
+union BindingStatus {
   processing: Processing
   failed: Failed
   completed: Completed

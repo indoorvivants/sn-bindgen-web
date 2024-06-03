@@ -4,12 +4,12 @@ import bindgen.web.domain.*
 import cats.effect.*
 import cats.effect.std.UUIDGen
 import cats.syntax.all.*
+import fs2.io.file.Files
+import fs2.io.file.Path
 import porcupine.*
 import scodec.bits.ByteVector
 
 import java.util.UUID
-import fs2.io.file.Files
-import fs2.io.file.Path
 import scala.concurrent.duration.FiniteDuration
 
 enum State:
@@ -195,7 +195,6 @@ class StoreImpl(db: Database[IO]) extends Store:
 
   object C:
 
-    import io.circe.{Decoder, Encoder}
     import io.circe.parser.decode
     import io.circe.syntax.*
     import io.circe.*

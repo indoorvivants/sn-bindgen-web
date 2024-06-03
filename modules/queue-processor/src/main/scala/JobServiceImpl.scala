@@ -21,12 +21,12 @@ class JobServiceImpl(
     store.getState(id).flatMap {
       case Some(State.Completed) =>
         GetStatusOutput(
-          bindgen.web.domain.Status.CompletedCase(Completed())
+          BindingStatus.CompletedCase(Completed())
         ).pure[IO]
       case Some(State.Added) =>
         order.get.map { m =>
           GetStatusOutput(
-            bindgen.web.domain.Status
+            BindingStatus
               .ProcessingCase(
                 bindgen.web.domain.Processing(remaining = m.get(id))
               )
@@ -35,7 +35,7 @@ class JobServiceImpl(
 
       case Some(State.Failed) =>
         GetStatusOutput(
-          bindgen.web.domain.Status.FailedCase(Failed(message = None))
+          bindgen.web.domain.BindingStatus.FailedCase(Failed(message = None))
         ).pure
     }
 

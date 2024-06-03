@@ -11,6 +11,7 @@ use bindgen.web.domain#BindingNotFound
 use bindgen.web.domain#BindingCodeNotFound
 use bindgen.web.domain#ValidationError
 use bindgen.web.domain#SubmissionFailed
+use bindgen.web.domain#BindingStatus
 
 @simpleRestJson
 service JobService {
@@ -66,7 +67,7 @@ operation GetStatus {
   },
   output := {
     @required
-    status: Status
+    status: BindingStatus
   }
 }
 
