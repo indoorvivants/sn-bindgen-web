@@ -1,9 +1,7 @@
 package bindgen.web.frontend
 
 import bindgen.web.api.BindgenService
-import bindgen.web.domain.Status.CompletedCase
-import bindgen.web.domain.Status.FailedCase
-import bindgen.web.domain.Status.ProcessingCase
+import bindgen.web.domain.BindingStatus.*
 import bindgen.web.domain.*
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global

@@ -2,7 +2,7 @@ package bindgen.web.frontend
 
 import com.raquo.laminar.api.L.*
 import bindgen.web.domain.*
-import bindgen.web.domain.Status.*
+import bindgen.web.domain.BindingStatus.*
 import com.raquo.waypoint.*
 
 private def renderBinding(gb: GeneratedBinding, showSource: Boolean) =
@@ -37,17 +37,29 @@ private def renderBinding(gb: GeneratedBinding, showSource: Boolean) =
     }
   )
 
+def renderFailed(failed: Failed) =
+  val diags =
+    Option.when(failed.diagnostics.getOrElse(Nil).nonEmpty):
+      ul(
+        failed.diagnostics
+          .getOrElse(Nil)
+          .map: diag =>
+            li(b(diag.severity), ": ", diag.message)
+      )
+  div(b(s"Failed: ${failed.message}"), diags)
+end renderFailed
+
 def renderBindingId(idSignal: Observable[JobId], showSource: Boolean)(using
     Api
 ) =
   div(
     cls := "w-full",
-    child <-- idSignal.flatMap { id =>
+    child <-- idSignal.flatMapSwitch { id =>
       api
         .signal(
           _.users.getStatus(id).map(_.status)
         )
-        .flatMap {
+        .flatMapSwitch {
           case None => Signal.fromValue(i("gimme a minute"))
           case Some(value) =>
             value match
@@ -62,7 +74,7 @@ def renderBindingId(idSignal: Observable[JobId], showSource: Boolean)(using
                 }
 
               case FailedCase(failed) =>
-                Signal.fromValue(b(s"Failed: ${failed.message}"))
+                Signal.fromValue(renderFailed(failed))
               case CompletedCase(completed) =>
                 api.signal(_.users.getBinding(id)).map {
                   case None => i("gimme a minute")

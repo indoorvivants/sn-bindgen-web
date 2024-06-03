@@ -27,20 +27,22 @@ object app extends snunit.Http4sApp:
     val queue = Queue
       .bounded[IO, (BindingSpec, Deferred[IO, SubmissionResult])](1024)
       .toResource
-    val store = Env[IO].get("DB_PATH").toResource.flatMap {
-      case None =>
-        Store
-          .open(":memory:")
-          .evalTap(_ =>
-            Log.warn(
-              "environment variable DB_PATH is not set, Sqlite database will be in-memory only"
-            )
-          )
-      case Some(value) =>
-        Store
-          .open(value)
-          .evalTap(_ => Log.info(s"Opened database in $value"))
-    }
+    val store = Store.open()
+
+    // val store = Env[IO].get("DB_PATH").toResource.flatMap {
+    //   case None =>
+    //     Store
+    //       .open(":memory:")
+    //       .evalTap(_ =>
+    //         Log.warn(
+    //           "environment variable DB_PATH is not set, Sqlite database will be in-memory only"
+    //         )
+    //       )
+    //   case Some(value) =>
+    //     Store
+    //       .open(value)
+    //       .evalTap(_ => Log.info(s"Opened database in $value"))
+    // }
 
     val tempPath =
       Env[IO]
@@ -57,17 +59,19 @@ object app extends snunit.Http4sApp:
 
     val jobIdIssuer = IO.ref(Map.empty[JobId, Int]).toResource
 
-    (queue, store, jobIdIssuer, tempPath).parTupled.flatMap {
-      (queue, store, issuer, tempPath) =>
+    val config = RuntimeConfig.fromEnv.toResource
+
+    (queue, store, jobIdIssuer, tempPath, config).parTupled.flatMap {
+      (queue, store, issuer, tempPath, config) =>
         Worker
           .create(
             store,
-            tempPath
+            tempPath,
+            config
           )
-          .toResource
           .flatMap(_.process) *>
-          submitter(queue, store).compile.drain.background *>
-          orderingRefresh(issuer, store).compile.drain.background *>
+        submitter(queue, store).compile.drain.background *>
+          //   orderingRefresh(issuer, store).compile.drain.background *>
           SimpleRestJsonBuilder
             .routes(JobServiceImpl(queue, issuer, store))
             .resource

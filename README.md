@@ -20,7 +20,7 @@ _Warning: this is currently not working and really should be a private repo, but
     Release version (slow):
 
     ```
-    $ docker build . --build-arg scalanative_mode=debug --build-arg scalanative_lto=none -t sn-bindgen-web
+    $ docker build . --build-arg scalanative_mode=release-fast --build-arg scalanative_lto=none -t sn-bindgen-web
     ```
 
     Debug version (slightly faster):

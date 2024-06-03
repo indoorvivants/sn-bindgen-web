@@ -1,12 +1,8 @@
 package bindgen.web.internal.jobs
 
-import scala.scalanative.unsafe.*
-
 import cats.effect.*
-import porcupine.*
-import bindgen.web.domain.BindingSpec
-import cats.effect.std.UUIDGen
-import bindgen.web.domain.JobId
+
+import scala.scalanative.unsafe.*
 
 val ZoneResource: Resource[IO, Zone] =
   Resource.make(IO(Zone.open()))(zone => IO(zone.close()))

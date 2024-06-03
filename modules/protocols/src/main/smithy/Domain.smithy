@@ -56,7 +56,7 @@ structure ClangError {
   message: String
 }
 
-union Status {
+union BindingStatus {
   processing: Processing
   failed: Failed
   completed: Completed
@@ -71,6 +71,20 @@ structure Processing {
 }
 
 structure Failed {
+  @required
+  message: String,
+  diagnostics: DiagList
+}
+
+list DiagList {
+  member: Diag
+}
+
+structure Diag {
+  @required
+  severity: String,
+
+  @required
   message: String
 }
 

@@ -3,31 +3,33 @@ import scala.scalanative.build.Mode
 import org.scalajs.linker.interface.ModuleSplitStyle
 
 val V = new {
-  val Scala = "3.3.1"
+  val Scala = "3.5.0-RC1"
 
-  val snunit = "0.7.2"
+  val snunit = "0.8.0"
 
   val snCrypto = "0.0.4"
 
-  val http4s = "0.23.24"
+  val http4s = "0.23.27"
 
   val fs2 = "3.6.1"
 
-  val scribe = "3.12.2"
+  val scribe = "3.13.2"
 
   val opaqueNewtypes = "0.0.2"
 
-  val porcupine = "0.0.1"
+  val skunk = "1.0.0-M6"
 
   val macroTaskExecutor = "1.1.1"
 
-  val laminar = "16.0.0"
+  val laminar = "17.0.0"
 
-  val circe = "0.14.6"
+  val circe = "0.14.7"
 
-  val waypoint = "7.0.0"
+  val waypoint = "8.0.0"
 
-  val http4sDom = "0.2.10"
+  val http4sDom = "0.2.11"
+
+  val bindgen = "0.1.2"
 }
 
 val isScala3 = Seq(VirtualAxis.scalaABIVersion(V.Scala))
@@ -107,6 +109,7 @@ lazy val `http-server` =
       libraryDependencies += "com.outr"   %%% "scribe-cats"         % V.scribe,
       nativeConfig ~= { _.withIncrementalCompilation(true) },
       scalacOptions += "-Wunused:all",
+      scalacOptions += "-P:scalanative:genStaticForwardersForNonTopLevelObjects",
       vcpkgSettings,
       remoteCache
     )
@@ -132,15 +135,13 @@ lazy val bindings =
         val configurator = vcpkgConfigurator.value
         import bindgen.interface.*
         Seq(
-          Binding
-            .builder(configurator.includes("zstd") / "zstd.h", "zstd")
+          Binding(configurator.includes("zstd") / "zstd.h", "zstd")
             .withCImports(List("zstd.h"))
             .withClangFlags(
               List(
                 "-I" + configurator.includes("zstd").toString
               )
             )
-            .build
         )
       }
     )
@@ -156,16 +157,18 @@ lazy val `queue-processor` =
       remoteCache,
       vcpkgSettings,
       bindgenBinary := file(".no"),
-      libraryDependencies += ("com.indoorvivants" % "bindgen_native0.4_3" % "0.0.22")
+      resolvers += Resolver.sonatypeRepo("snapshots"),
+      libraryDependencies += ("com.indoorvivants" % "bindgen_native0.4_3" % V.bindgen)
         .classifier(""),
       libraryDependencies += "io.circe" %%% "circe-parser" % V.circe,
       libraryDependencies += "com.indoorvivants" %%% "opaque-newtypes" % V.opaqueNewtypes, // SBT
       libraryDependencies += "com.github.lolgab" %%% "snunit-http4s0.23" % V.snunit,
       libraryDependencies += "com.github.lolgab" %%% "scala-native-crypto" % V.snCrypto,
-      libraryDependencies += "com.outr"       %%% "scribe-cats" % V.scribe,
-      libraryDependencies += "org.http4s"     %%% "http4s-dsl"  % V.http4s,
-      libraryDependencies += "com.armanbilge" %%% "porcupine"   % V.porcupine,
-      nativeConfig ~= { _.withIncrementalCompilation(true) },
+      libraryDependencies += "com.outr"     %%% "scribe-cats" % V.scribe,
+      libraryDependencies += "org.http4s"   %%% "http4s-dsl"  % V.http4s,
+      libraryDependencies += "org.tpolecat" %%% "skunk-core"  % V.skunk,
+      libraryDependencies += "dev.rolang"   %%% "dumbo"       % "0.3.3",
+      nativeConfig ~= { _.withIncrementalCompilation(true).withEmbedResources(true) },
       nativeConfig ~= usesLibClang,
       scalacOptions += "-Wunused:all"
     )
@@ -187,6 +190,21 @@ ThisBuild / buildApp := {
   locally { buildWeb.value }
   locally { buildWorker.value }
   locally { buildFrontend.value }
+
+  val dest     = (ThisBuild / baseDirectory).value / "build"
+  val statedir = dest / "statedir"
+  IO.createDirectory(statedir)
+
+  IO.copyFile(dest.getParentFile() / "conf.json", statedir / "conf.json")
+
+  dest
+
+}
+
+val buildBackend = taskKey[File]("")
+ThisBuild / buildBackend := {
+  locally { buildWeb.value }
+  locally { buildWorker.value }
 
   val dest     = (ThisBuild / baseDirectory).value / "build"
   val statedir = dest / "statedir"
@@ -401,7 +419,7 @@ runServer := {
   val proc = Process(
     UNITD_LOCAL_COMMAND,
     cwd = dest,
-    "WORKER_HOST" -> "http://localhost:8888",
+    "WORKER_HOST" -> "http://localhost:8081",
     "DB_PATH"     -> data.toString
   )
 
@@ -415,10 +433,11 @@ lazy val devServer = project
     fork         := true,
     scalaVersion := V.Scala,
     envVars ++= Map(
-      "SERVER_BINARY" -> (ThisBuild / buildApp).value.toString,
+      "SERVER_BINARY" -> (ThisBuild / buildBackend).value.toString,
       "UNITD_COMMAND" -> UNITD_LOCAL_COMMAND,
       "SERVER_CWD"    -> ((ThisBuild / baseDirectory).value / "build").toString,
-      "WORKER_HOST"   -> "http://localhost:8888",
-      "DB_PATH" -> ((ThisBuild / baseDirectory).value / "data" / "worker.db").toString
+      "WORKER_HOST"   -> "http://localhost:8081",
+      // "DB_PATH" -> ((ThisBuild / baseDirectory).value / "data" / "worker.db").toString,
+      "LLVM_BIN" -> "/opt/homebrew/opt/llvm@17/bin"
     )
   )

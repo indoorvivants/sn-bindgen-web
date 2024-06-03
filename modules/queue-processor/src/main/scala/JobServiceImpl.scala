@@ -21,12 +21,12 @@ class JobServiceImpl(
     store.getState(id).flatMap {
       case Some(State.Completed) =>
         GetStatusOutput(
-          bindgen.web.domain.Status.CompletedCase(Completed())
+          BindingStatus.CompletedCase(Completed())
         ).pure[IO]
       case Some(State.Added) =>
         order.get.map { m =>
           GetStatusOutput(
-            bindgen.web.domain.Status
+            BindingStatus
               .ProcessingCase(
                 bindgen.web.domain.Processing(remaining = m.get(id))
               )
@@ -34,9 +34,19 @@ class JobServiceImpl(
         }
 
       case Some(State.Failed) =>
-        GetStatusOutput(
-          bindgen.web.domain.Status.FailedCase(Failed(message = None))
-        ).pure
+        store
+          .getFailure(id)
+          .map: f =>
+            GetStatusOutput(
+              bindgen.web.domain.BindingStatus
+                .FailedCase(
+                  Failed(
+                    message = f.get.message,
+                    diagnostics =
+                      f.map(_.diags.map(rv => Diag(rv.severity, rv.msg)))
+                  )
+                )
+            )
     }
 
   override def submit(spec: BindingSpec): IO[SubmitOutput] =

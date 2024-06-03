@@ -1,7 +1,7 @@
 package bindgen.web.internal.jobs
 
+import bindgen.*
 import bindgen.rendering.RenderedOutput
-import bindgen.web.domain.JobId
 import bindgen.web.domain.*
 import cats.effect.*
 import cats.effect.std.*
@@ -13,31 +13,37 @@ import opaque_newtypes.TotalWrapper
 import java.io.File
 import java.util.UUID
 
-import concurrent.duration.*
-
 opaque type WorkerId = UUID
 object WorkerId extends TotalWrapper[WorkerId, UUID]
 
-class Worker private (id: WorkerId, store: Store, tempFolder: Option[Path]):
+class Worker private (
+    id: WorkerId,
+    store: Store,
+    tempFolder: Option[Path],
+    config: RuntimeConfig,
+    driver: InteractiveDriver
+):
   def process: Resource[IO, IO[OutcomeIO[Unit]]] =
-    Queue.bounded[IO, JobId](100).toResource.flatMap { q =>
+    Queue.bounded[IO, JobId](config.workerQueueSize).toResource.flatMap { q =>
       val normalProcess =
         fs2.Stream
-          .repeatEval(q.tryTake)
-          .meteredStartImmediately(1.second)
+          .repeatEval(IO.cede *> q.tryTake)
+          .meteredStartImmediately(config.workerPulse)
           .flatMap {
             case None =>
               val unprocessed = store
-                .createLeases(id, 5)
+                .createLeases(id, config.leaseLimit)
                 .evalTap(jobId => Log.info(s"Worker $id is leasing job $jobId"))
 
-              val stolen = store
-                .workSteal(id)
-                .evalTap(jobId =>
-                  Log.info(s"Worker $id is stealing old job $jobId")
-                )
+              val stolen = fs2.Stream.evalSeq(
+                store
+                  .workSteal(id, config.workStealLimit, config.jobStaleness)
+                  .flatTap(jobId =>
+                    Log.info(s"Worker $id is stealing jobs $jobId")
+                  )
+              )
 
-              (unprocessed ++ stolen).attempt
+              (unprocessed /*++ stolen*/ ).attempt
                 .collect { case Right(jid) => jid }
                 .evalMap(q.offer)
 
@@ -74,28 +80,20 @@ class Worker private (id: WorkerId, store: Store, tempFolder: Option[Path]):
             Log.info(s"Job $jobId finished processing with clang errors") *>
               store.complete(
                 jobId,
-                Right(
-                  ClangErrors(
-                    List(
-                      ClangError(severity = "error", message = exc.getMessage)
-                    )
-                  )
-                )
+                BindgenResult.Error(exc.getMessage())
               )
           case Right(generatedCode) =>
             Log.info(s"Job $jobId finished successfully") *>
               store
                 .complete(
                   jobId,
-                  Left(
-                    generatedCode
-                  )
+                  generatedCode
                 )
         }
 
     }
 
-  def generate(packageName: PackageName, code: HeaderCode) =
+  def generate(packageName: bindgen.web.domain.PackageName, code: HeaderCode) =
     import bindgen.*
     ZoneResource.useI {
       Log.info(s"temp folder: $tempFolder") *>
@@ -109,67 +107,45 @@ class Worker private (id: WorkerId, store: Store, tempFolder: Option[Path]):
               .compile
               .drain
 
-          val llvmBin =
-            sys.env.get("LLVM_BIN").toSeq.flatMap { path =>
-              Seq("--llvm-bin", path)
-            }
-
-          val bindgenArgs = Seq(
-            "--package",
-            packageName.value,
-            "--header",
-            path.toString,
-            "--render.no-location"
-          ) ++ llvmBin
-
-          val parsed = CLI.command.parse(
-            bindgenArgs
-          )
-
-          parsed match
-            case Left(help) =>
-              val (modified, code) =
-                if help.errors.nonEmpty then help.copy(body = Nil) -> -1
-                else help                                          -> 0
-
-              Log.error(
-                s"Failed to create bindgen config invocation failed with $modified"
-              ) *>
-                IO.raiseError(new RuntimeException(modified.toString))
-            case Right(config) =>
-              given Config = config.copy(minLogPriority =
-                MinLogPriority(LogLevel.priority(LogLevel.trace))
+          def run(lang: Lang) =
+            val context =
+              bindgen.Context(
+                packageName = bindgen.PackageName(packageName.value),
+                HeaderFile(path.toNioPath.toString),
+                lang = lang
               )
 
-              Log
-                .infoUnsafe(
-                  s"Invoking bindgen with `${bindgenArgs.mkString(" ")}`"
+            IO(
+              driver
+                .createBinding(
+                  context,
+                  OutputMode.StdOut
                 )
+            )
+          end run
 
-              def run(lang: Lang) =
-                IO(
-                  bindgen.rendering.binding(
-                    analyse(path.toString),
-                    lang,
-                    OutputMode.StdOut
-                  )
-                )
+          val scalaResult =
+            run(Lang.Scala).map {
+              _.map { case RenderedOutput.Single(lb) =>
+                ScalaCode(lb.result)
+              }
+            }
 
-              val scalaResult =
-                run(Lang.Scala).map { case RenderedOutput.Single(lb) =>
-                  ScalaCode(lb.result)
-                }
+          val cResult =
+            run(Lang.C).map {
+              _.map { case RenderedOutput.Single(lb) =>
+                val res = lb.result
+                Option.when(res.nonEmpty)(GlueCode(res))
+              }
+            }
 
-              val cResult =
-                run(Lang.C).map { case RenderedOutput.Single(lb) =>
-                  val res = lb.result
-                  Option.when(res.nonEmpty)(GlueCode(res))
-                }
+          val result = (scalaResult, cResult).mapN:
+            case (Left(err), _) => BindgenResult.adapt(err)
+            case (_, Left(err)) => BindgenResult.adapt(err)
+            case (Right(scala), Right(glue)) =>
+              BindgenResult.Success(GeneratedCode(scala, glue))
 
-              val result = (scalaResult, cResult).mapN(GeneratedCode.apply)
-
-              writeFile *> result
-          end match
+          writeFile *> result
         }
     }
   end generate
@@ -177,5 +153,47 @@ class Worker private (id: WorkerId, store: Store, tempFolder: Option[Path]):
 end Worker
 
 object Worker:
-  def create(store: Store, tempFolder: Option[Path]): IO[Worker] =
-    UUIDGen[IO].randomUUID.map(WorkerId(_)).map(Worker(_, store, tempFolder))
+  def create(
+      store: Store,
+      tempFolder: Option[Path],
+      config: RuntimeConfig
+  ): Resource[IO, Worker] =
+    val workerId = UUIDGen[IO].randomUUID
+      .map(WorkerId(_))
+      .toResource
+
+    (workerId, driverInit(tempFolder))
+      .mapN(Worker(_, store, tempFolder, config, _))
+  end create
+
+  private def driverInit(tempFolder: Option[Path]) =
+    val config =
+      val initial = Config.withDefaults()
+
+      Env[IO]
+        .get("LLVM_BIN")
+        .flatTap(bin => Log.info(s"LLVM_BIN env is set to $bin"))
+        .map: llvmBin =>
+          initial.copy(
+            systemPathDetection = llvmBin
+              .map(bin => SystemPathDetection.FromLLVM(LLVMBin(bin)))
+              .getOrElse(initial.systemPathDetection),
+            tempDir = tempFolder
+              .map(path => TempPath(path.toString))
+              .getOrElse(initial.tempDir)
+          )
+    end config
+
+    ZoneResource.flatMapI:
+      config.toResource.flatMap: config =>
+        IO.fromEither(
+          InteractiveDriver
+            .init(using config)
+            .leftMap(err =>
+              new RuntimeException(s"Bindgen init error: [${err.render}]")
+            )
+        ).toResource
+  end driverInit
+
+end Worker
+
