@@ -76,7 +76,7 @@ object app extends snunit.Http4sApp:
             .routes(JobServiceImpl(queue, issuer, store))
             .resource
             .map(handleErrors)
-    }
+    }.onError(err => Log.error("Failed to startup", err).toResource)
   end routes
 
   def submitter(
