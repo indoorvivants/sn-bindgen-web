@@ -7,7 +7,9 @@ case class PgCredentials(
     database: String,
     password: Option[String],
     ssl: Boolean
-)
+): 
+  override def toString(): String = 
+    s"PgCredentials[host=$host:$port,user=$user,database=$database]"
 
 object PgCredentials:
   def defaults(mp: Map[String, String]) =

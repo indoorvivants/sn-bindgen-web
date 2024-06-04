@@ -342,7 +342,9 @@ object Store:
 
     given Tracer[IO] = Tracer.Implicits.noop[IO]
 
-    creds.toResource
+    creds
+      .flatTap(cr => Log.info(s"Credentials: $cr"))
+      .toResource
       .evalTap(migrate(_))
       .flatMap(
         open(_, SkunkConfig)
