@@ -1,1 +1,8 @@
 FROM ghcr.io/indoorvivants/sn-bindgen-web:main
+
+ENV WORKER_HOST=http://localhost:8081
+ENV DB_PATH=/var/data/bindgen-web/data.db
+ENV LLVM_BIN=/usr/lib/llvm-17/bin
+ENV TEMP_PATH=/var/data/bindgen-web/tmp
+
+ENTRYPOINT [ "bash", "-c", "chown -R unit:unit /var/data/bindgen-web/ && unitd --no-daemon --log /dev/stdout" ]
