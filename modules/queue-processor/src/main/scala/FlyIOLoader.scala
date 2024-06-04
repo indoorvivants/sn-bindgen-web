@@ -1,6 +1,6 @@
 package bindgen.web.internal.jobs
 
-import scala.util.Try
+import scala.util.*
 
 class FlyIOLoader(env: Map[String, String]):
   def loadPgCredentials: Option[PgCredentials] =
@@ -25,7 +25,11 @@ class FlyIOLoader(env: Map[String, String]):
           database = dbName,
           ssl = env.contains("FLY_PG_SSL")
         )
-      }.toOption
+      } match
+        case Success(s) => Some(s)
+        case Failure(f) =>
+          scribe.error("Failed to read from DATABASE_URL", f)
+          None
 
     }
 end FlyIOLoader

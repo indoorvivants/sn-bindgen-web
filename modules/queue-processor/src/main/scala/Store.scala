@@ -335,10 +335,12 @@ end StoreImpl
 object Store:
   def open(): Resource[cats.effect.IO, Store] =
     val creds =
-      Env[IO].entries.map: env =>
-        val flyio = FlyIOLoader(env.toMap)
+      Env[IO].entries
+        .flatTap(entries => Log.info(s"Env: ${entries.toMap.keySet}"))
+        .map: env =>
+          val flyio = FlyIOLoader(env.toMap)
 
-        flyio.loadPgCredentials.getOrElse(PgCredentials.defaults(env.toMap))
+          flyio.loadPgCredentials.getOrElse(PgCredentials.defaults(env.toMap))
 
     given Tracer[IO] = Tracer.Implicits.noop[IO]
 

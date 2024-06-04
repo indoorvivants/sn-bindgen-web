@@ -29,13 +29,7 @@ ENV VCPKG_FORCE_SYSTEM_BINARIES=1
 RUN sn-vcpkg install -v --manifest vcpkg.json
 
 
-ARG scalanative_mode=release-fast
-ARG scalanative_lto=thin
 
-ENV SCALANATIVE_MODE=${scalanative_mode}
-ENV SCALANATIVE_LTO=${scalanative_lto}
-ENV CI=true
-ENV LLVM_BIN=/usr/lib/llvm-17/bin
 
 RUN apt update && apt install -y lsb-release wget software-properties-common gnupg &&\
   # install LLVM and libclang
@@ -57,6 +51,12 @@ COPY modules/protocols/src modules/protocols/src
 COPY modules/frontend/src modules/frontend/src
 COPY modules/queue-processor/src modules/queue-processor/src
 
+ARG scalanative_mode=release-fast
+ARG scalanative_lto=thin
+ENV SCALANATIVE_MODE=${scalanative_mode}
+ENV SCALANATIVE_LTO=${scalanative_lto}
+ENV CI=true
+ENV LLVM_BIN=/usr/lib/llvm-17/bin
 RUN sbt buildApp
 
 RUN mkdir empty_dir

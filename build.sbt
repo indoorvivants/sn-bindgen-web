@@ -438,6 +438,7 @@ lazy val devServer = project
       "SERVER_CWD"    -> ((ThisBuild / baseDirectory).value / "build").toString,
       "WORKER_HOST"   -> "http://localhost:8081",
       // "DB_PATH" -> ((ThisBuild / baseDirectory).value / "data" / "worker.db").toString,
-      "LLVM_BIN" -> "/opt/homebrew/opt/llvm@17/bin"
+      "LLVM_BIN" -> sys.env.getOrElse("LLVM_BIN", "/opt/homebrew/opt/llvm@17/bin"),
+      "DATABASE_URL" -> "postgres://sn_bindgen_web:U6dsj7lXhnYxjEc@sn-bindgen-web-db.flycast:5432/sn_bindgen_web?sslmode=disable"
     )
   )
