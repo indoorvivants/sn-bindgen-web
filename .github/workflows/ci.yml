@@ -66,3 +66,5 @@ jobs:
 
       - name: Deploy to Fly.io
         run: flyctl deploy --dockerfile Dockerfile.deploy --local-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
