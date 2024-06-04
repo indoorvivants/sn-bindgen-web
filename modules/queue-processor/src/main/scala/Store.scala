@@ -351,36 +351,6 @@ object Store:
       .flatMap(
         open(_, SkunkConfig)
       )
-    // Session.pooled()
-    // Database
-    //   .open[IO](filename)
-    //   .evalTap { db =>
-    //     val migrations = List(
-    //       sql"""
-    //      |create table if not exists bindings(
-    //      |  id text primary key not null,
-    //      |  state text not null,
-    //      |  state_date int not null,
-    //      |  header_code blob not null,
-    //      |  package_name text not null
-    //      |);""".stripMargin,
-    //       sql"""
-    //      |create table if not exists generated_code(
-    //      |  binding_id text primary key not null,
-    //      |  scala_code blob not null,
-    //      |  glue_code blob
-    //      |);""".stripMargin,
-    //       sql"""
-    //      |create table if not exists leases(
-    //      |  binding_id text not null,
-    //      |  worker_id text not null,
-    //      |  checked_in_at int not null
-    //      |);
-    //    """.stripMargin
-    //     )
-    //     migrations.map(_.command).traverse(db.execute(_))
-    //   }
-    //   .map(StoreImpl(_))
   end open
 
   def migrate(postgres: PgCredentials)(using Tracer[IO]) =
