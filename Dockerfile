@@ -1,45 +1,44 @@
 FROM keynmol/sn-vcpkg:latest as dev
 
-# Install NGINX Unit
-RUN apt-get update && \
-    apt-get install -y curl
-
 ARG unit_version=1.31.1
 ENV UNIT_VERSION=${unit_version}
 
-# Compile minimal NGINX Unit
-RUN apt-get update && apt-get install -y curl build-essential libpcre2-dev
-RUN curl -O https://unit.nginx.org/download/unit-$UNIT_VERSION.tar.gz && tar xzf unit-$UNIT_VERSION.tar.gz
-RUN mv unit-$UNIT_VERSION unit
-RUN cd unit && \
+# Install all native dependencies
+RUN apt-get update && apt-get install -y curl build-essential libpcre2-dev && \
+    curl -O https://unit.nginx.org/download/unit-$UNIT_VERSION.tar.gz && tar xzf unit-$UNIT_VERSION.tar.gz && \
+    mv unit-$UNIT_VERSION unit && \
+    cd unit && \
     ./configure --no-ipv6 --log=/dev/stderr --user=unit --group=unit --statedir=statedir && \
     make build/sbin/unitd && \
     make build/lib/libunit.a && \
     install -p build/lib/libunit.a /usr/local/lib/libunit.a && \
-    mv build/sbin/unitd /usr/sbin/unitd
+    mv build/sbin/unitd /usr/sbin/unitd && \
+    apt install -y lsb-release wget software-properties-common gnupg && \
+    # install LLVM and libclang
+    curl -Lo llvm.sh https://apt.llvm.org/llvm.sh && \
+    chmod +x llvm.sh && \
+    ./llvm.sh 17 && \
+    apt update && \
+    apt install -y libclang-17-dev libz-dev libutf8proc-dev
 
 WORKDIR /workdir
 
 # pre-download SBT
+COPY project/build.properties project/
 RUN sbt --sbt-create version
 
+# install vcpkg dependencies
 COPY vcpkg.json .
-
 ENV VCPKG_FORCE_SYSTEM_BINARIES=1
 RUN sn-vcpkg install -v --manifest vcpkg.json
 
-
-
-
-RUN apt update && apt install -y lsb-release wget software-properties-common gnupg &&\
-  # install LLVM and libclang
-  curl -Lo llvm.sh https://apt.llvm.org/llvm.sh && \
-  chmod +x llvm.sh && \
-  ./llvm.sh 17 && \
-  apt update && \
-  apt install -y libclang-17-dev libz-dev libutf8proc-dev
-
-COPY project/build.properties project/
+# build app
+ARG scalanative_mode=release-fast
+ARG scalanative_lto=thin
+ENV SCALANATIVE_MODE=${scalanative_mode}
+ENV SCALANATIVE_LTO=${scalanative_lto}
+ENV CI=true
+ENV LLVM_BIN=/usr/lib/llvm-17/bin
 COPY project/plugins.sbt project/
 COPY project/*.scala project/
 COPY build.sbt .
@@ -50,13 +49,6 @@ COPY modules/http-server/src modules/http-server/src
 COPY modules/protocols/src modules/protocols/src
 COPY modules/frontend/src modules/frontend/src
 COPY modules/queue-processor/src modules/queue-processor/src
-
-ARG scalanative_mode=release-fast
-ARG scalanative_lto=thin
-ENV SCALANATIVE_MODE=${scalanative_mode}
-ENV SCALANATIVE_LTO=${scalanative_lto}
-ENV CI=true
-ENV LLVM_BIN=/usr/lib/llvm-17/bin
 RUN sbt buildApp
 
 RUN mkdir empty_dir

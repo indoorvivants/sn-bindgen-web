@@ -65,4 +65,4 @@ jobs:
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
       - name: Deploy to Fly.io
-        run: fly deploy --dockerfile Dockerfile.deploy --local-only
+        run: flyctl deploy --dockerfile Dockerfile.deploy --local-only
