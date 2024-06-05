@@ -6,3 +6,4 @@ ENV LLVM_BIN=/usr/lib/llvm-17/bin
 ENV TEMP_PATH=/var/data/bindgen-web/tmp
 
 ENTRYPOINT [ "bash", "-c", "chown -R unit:unit /var/data/bindgen-web/ && unitd --no-daemon --log /dev/stdout" ]
+

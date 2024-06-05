@@ -9,7 +9,7 @@ class FlyIOLoader(env: Map[String, String]):
 
         val parsed = new java.net.URI(url)
 
-        val host     = parsed.getHost()
+        val host     = sys.env.getOrElse("PG_HOST_OVERRIDE", parsed.getHost())
         val port     = parsed.getPort()
         val userInfo = parsed.getUserInfo()
         val dbName   = parsed.getPath().tail // dropping the first slash
