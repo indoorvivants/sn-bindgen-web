@@ -1,20 +1,76 @@
 package bindgen.web.frontend
 
-import com.raquo.laminar.api.L.*
 import bindgen.web.domain.*
 import bindgen.web.domain.BindingStatus.*
+import com.raquo.laminar.api.L.*
 import com.raquo.waypoint.*
 
-private def renderBinding(gb: GeneratedBinding, showSource: Boolean) =
+private def renderBinding(gb: GeneratedBinding, showSource: Boolean)(using
+    Router[Page]
+) =
   div(
-    cls := "bg-blue-950 font-sans text-white w-11/12 m-auto",
-    Option.when(showSource)(headerBlock("Original C header")),
+    Option.when(showSource)(
+      div(
+        cls := "link-bar",
+        a(
+          href := "#",
+          cls  := "link-on-background",
+          "⬅️ Back to main page",
+          navigateTo(Page.Main)
+        ),
+        a(
+          href := "#",
+          cls  := "link-on-background",
+          "📋 Copy sharing link",
+          onClick.preventDefault --> { _ =>
+            org.scalajs.dom.window.navigator.clipboard
+              .writeText(org.scalajs.dom.window.location.href)
+          }
+        )
+      )
+    ),
+    Option.when(showSource)(
+      div(
+        cls := "code-block-header",
+        a(
+          cls := "copy-button",
+          "📋",
+          href := "#",
+          onClick.preventDefault --> { _ =>
+            org.scalajs.dom.window.navigator.clipboard
+              .writeText(gb.spec.headerCode.value)
+          }
+        ),
+        headerBlock("Original C header")
+      )
+    ),
     Option.when(showSource)(codeBlock("c", gb.spec.headerCode.value)),
     gb.code.map { gc =>
       val scalaCodeBlock =
         div(
-          headerBlock("Scala code"),
-          codeBlock("scala", gc.scalaCode.value)
+          div(
+            cls := "code-block-header",
+            a(
+              cls := "copy-button",
+              "📋",
+              href := "#",
+              onClick.preventDefault --> { _ =>
+                org.scalajs.dom.window.navigator.clipboard
+                  .writeText(gc.scalaCode.value)
+              }
+            ),
+            headerBlock(
+              "Scala code"
+            )
+          ),
+          Option.when(gc.glueCode.isDefined)(
+            div(
+              cls := "warn-message",
+              "Won't work without glue code below"
+            )
+          ),
+          headerExplanationBlock("This code has no runtime dependencies"),
+          codeBlock("scala", gc.scalaCode.value.trim)
         )
 
       gc.glueCode match
@@ -28,8 +84,26 @@ private def renderBinding(gb: GeneratedBinding, showSource: Boolean) =
             ),
             div(
               cls := "grow-0 w-6/12",
-              headerBlock("Glue C code"),
-              codeBlock("c", glue.value)
+              div(
+                cls := "code-block-header",
+                a(
+                  cls := "copy-button",
+                  "📋",
+                  href := "#",
+                  onClick.preventDefault --> { _ =>
+                    org.scalajs.dom.window.navigator.clipboard
+                      .writeText(glue.value)
+                  }
+                ),
+                headerBlock("Glue C code")
+              ),
+              headerExplanationBlock(
+                "In SBT, put this into src/main/resources/scala-native/ folder"
+              ),
+              headerExplanationBlock(
+                "In Scala CLI, put this into resources/scala-native/ folder"
+              ),
+              codeBlock("c", glue.value.trim())
             )
           )
       end match
@@ -49,16 +123,19 @@ def renderFailed(failed: Failed) =
   div(b(s"Failed: ${failed.message}"), diags)
 end renderFailed
 
-def renderBindingId(idSignal: Observable[JobId], showSource: Boolean)(using
+
+def renderBindingId(
+    idSignal: Observable[JobId],
+    showSource: Boolean,
+    recentBindings: RecentBindingsManager
+)(using
     Api
-) =
+)(using Router[Page]) =
   div(
     cls := "w-full",
     child <-- idSignal.flatMapSwitch { id =>
       api
-        .signal(
-          _.users.getStatus(id).map(_.status)
-        )
+        .signal(_.users.getStatus(id).`then`(_.status))
         .flatMapSwitch {
           case None => Signal.fromValue(i("gimme a minute"))
           case Some(value) =>
@@ -79,6 +156,10 @@ def renderBindingId(idSignal: Observable[JobId], showSource: Boolean)(using
                 api.signal(_.users.getBinding(id)).map {
                   case None => i("gimme a minute")
                   case Some(value) =>
+                    val singleLineCCode =
+                      value.spec.headerCode.value.take(150).replace("\n", "↵")
+
+                    recentBindings.add(singleLineCCode, id.value)
                     renderBinding(value, showSource = showSource)
                 }
 
@@ -86,13 +167,21 @@ def renderBindingId(idSignal: Observable[JobId], showSource: Boolean)(using
 
     }
   )
+end renderBindingId
 
-def renderBindingPage(userPageSignal: Signal[Page.BindingPage])(using
+def renderBindingPage(
+    userPageSignal: Signal[Page.BindingPage],
+    recentBindings: RecentBindingsManager
+)(using
     Api,
     Router[Page]
 ): Div =
   div(
+    cls := "container",
     pageTitle,
-    cls := "bg-blue-950 font-sans text-white w-11/12 m-auto",
-    renderBindingId(userPageSignal.map(_.id), showSource = true)
+    renderBindingId(
+      userPageSignal.map(_.id),
+      showSource = true,
+      recentBindings = recentBindings
+    )
   )

@@ -1,52 +1,45 @@
 package bindgen.web.frontend
 
 import bindgen.web.api.BindgenService
-import bindgen.web.domain.BindingStatus.*
-import bindgen.web.domain.*
-import cats.effect.IO
-import cats.effect.unsafe.implicits.global
 import com.raquo.laminar.api.L.*
-import com.raquo.waypoint.*
-import org.http4s.Uri
-import org.http4s.dom.FetchClientBuilder
 import org.scalajs.dom
-import org.scalajs.macrotaskexecutor.MacrotaskExecutor.Implicits.*
-import smithy4s.http4s.SimpleRestJsonBuilder
+import smithy4s_fetch.*
 
-import java.util.UUID
 import scala.concurrent.Future
 import scala.scalajs.js
-import scala.scalajs.js.annotation.JSGlobal
-import scala.scalajs.js.annotation.JSImport
+import scala.scalajs.js.Promise
+import scala.scalajs.js.Thenable.Implicits.*
+import scala.util.Failure
+import scala.util.Success
 
 def api(using a: Api): Api = a
 
 class Api private (
-    val users: BindgenService[IO]
+    val users: BindgenService[Promise]
 ):
   import org.scalajs.macrotaskexecutor.MacrotaskExecutor.Implicits.*
-  def future[A](a: Api => IO[A]): Future[A] =
-    a(this).unsafeToFuture()
+  def future[A](a: Api => Promise[A]): Future[A] =
+    a(this)
 
-  def stream[A](a: Api => IO[A]): EventStream[A] =
-    EventStream.fromFuture(future(a))
+  def futureAttempt[A](a: Api => Promise[A]): Future[Either[Throwable, A]] =
+    a(this).transform:
+      case Success(value)     => Success(Right(value))
+      case Failure(exception) => Success(Left(exception))
 
-  def signal[A](a: Api => IO[A]): Signal[Option[A]] =
-    Signal.fromFuture(future(a))
+  def stream[A](a: Api => Promise[A]): EventStream[A] =
+    EventStream.fromJsPromise(a(this))
+
+  def signal[A](a: Api => Promise[A]): Signal[Option[A]] =
+    Signal.fromJsPromise(a(this))
 end Api
 
 object Api:
   def create(location: String = dom.window.location.origin) =
-    val uri = Uri.unsafeFromString(location)
 
-    val client = FetchClientBuilder[IO].create
+    val client =
+      SimpleRestJsonFetchClient(BindgenService, location).make
 
-    Api(
-      SimpleRestJsonBuilder(BindgenService)
-        .client(client)
-        .uri(uri)
-        .make
-        .fold(throw _, identity)
-    )
+    Api(client)
+
   end create
 end Api

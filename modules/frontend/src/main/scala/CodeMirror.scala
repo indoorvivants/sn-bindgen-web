@@ -1,8 +1,8 @@
 package bindgen.web.frontend
 
 import org.scalajs.dom
+
 import scala.scalajs.js
-import scala.scalajs.js.annotation.JSImport
 import scala.scalajs.js.annotation.JSGlobal
 
 @js.native
@@ -10,11 +10,16 @@ trait CodeMirrorValue extends js.Object:
   def getValue(): String
 
 @js.native
+trait CodeMirrorDoc extends js.Object:
+  def setValue(value: String): Unit = js.native
+
+@js.native
 trait CodeMirrorInstance extends js.Object:
   def on(
       eventName: String,
       listener: js.Function1[CodeMirrorValue, Unit]
   ): this.type = js.native
+  def getDoc(): CodeMirrorDoc = js.native
 end CodeMirrorInstance
 
 @js.native

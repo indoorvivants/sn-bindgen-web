@@ -17,4 +17,6 @@ Dockerfile
 build
 .docker-build
 fly.toml
-
+out
+build
+node_modules

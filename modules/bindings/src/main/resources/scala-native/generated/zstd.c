@@ -11,5 +11,3 @@ void __sn_wrap_zstd_ZSTD_dParam_getBounds(ZSTD_dParameter dParam, ZSTD_bounds *_
   ZSTD_bounds ____ret = ZSTD_dParam_getBounds(dParam);
   memcpy(____return, &____ret, sizeof(ZSTD_bounds));
 }
-
-
