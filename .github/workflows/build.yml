@@ -31,9 +31,23 @@ jobs:
       - uses: sbt/setup-sbt@v1
 
       - run: |
-          ./.github/workflows/scripts/setup_unix.sh
+          sudo apt-get update && apt-get install -y curl build-essential libpcre2-dev && \
+          curl -O https://unit.nginx.org/download/unit-$UNIT_VERSION.tar.gz && tar xzf unit-$UNIT_VERSION.tar.gz && \
+          mv unit-$UNIT_VERSION unit && \
+          cd unit && \
+          ./configure --no-ipv6 --log=/dev/stderr --user=unit --group=unit --statedir=statedir && \
+          make build/sbin/unitd && \
+          make build/lib/libunit.a && \
+          sudo install -p build/lib/libunit.a /usr/local/lib/libunit.a && \
+          mv build/sbin/unitd /usr/sbin/unitd && \
+          sudo apt install -y lsb-release wget software-properties-common gnupg && \
+          # install LLVM and libclang
+          curl -Lo llvm.sh https://apt.llvm.org/llvm.sh && \
+          chmod +x llvm.sh && \
+          sudo ./llvm.sh 17 && \
+          sudo apt update && \
+          sudo apt install -y libclang-17-dev libz-dev libutf8proc-dev
           echo "LLVM_BIN=/usr/lib/llvm-17/bin" >> $GITHUB_ENV
-          sudo apt-get install -y unit unit-dev bison flex libutf8proc-dev
 
       - run: ./publish-forks.sh
 
