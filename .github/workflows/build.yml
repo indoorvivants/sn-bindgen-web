@@ -1,0 +1,69 @@
+#
+name: Build app
+
+# Configures this workflow to run every time a change is pushed to the branch called `release`.
+on:
+  push:
+    tags: ["v*"]
+    branches: ["main"]
+  pull_request:
+    branches: ["*"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # Sets the permissions granted to the `GITHUB_TOKEN` for the actions in this job.
+    env:
+      JAVA_OPTS: -Xmx6G
+      UNIT_VERSION: 1.34.1
+      LLVM_VERSION: 17
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup
+        uses: actions/setup-java@v4
+        with:
+          java-version: 21
+          distribution: temurin
+          cache: sbt
+
+      - uses: sbt/setup-sbt@v1
+
+      - run: |
+          sudo apt-get update && \
+          sudo apt-get install -y curl build-essential libpcre2-dev && \
+          curl -O https://unit.nginx.org/download/unit-$UNIT_VERSION.tar.gz && tar xzf unit-$UNIT_VERSION.tar.gz && \
+          mv unit-$UNIT_VERSION unit && \
+          cd unit && \
+          ./configure --no-ipv6 --log=/dev/stderr --user=unit --group=unit --statedir=statedir && \
+          make build/sbin/unitd && \
+          make build/lib/libunit.a && \
+          sudo install -p build/lib/libunit.a /usr/local/lib/libunit.a && \
+          sudo mv build/sbin/unitd /usr/sbin/unitd && \
+          sudo apt install -y lsb-release wget software-properties-common gnupg && \
+          curl -Lo llvm.sh https://apt.llvm.org/llvm.sh && \
+          chmod +x llvm.sh && \
+          sudo ./llvm.sh $LLVM_VERSION && \
+          sudo apt update && \
+          sudo apt install -y libclang-$LLVM_VERSION-dev libz-dev libutf8proc-dev && \
+
+          echo "LLVM_BIN=/usr/lib/llvm-$LLVM_VERSION/bin" >> $GITHUB_ENV
+
+      - run: ./publish-forks.sh
+
+      - name: Cache vcpkg
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/Library/Caches/sbt-vcpkg/vcpkg-install
+            ~/.cache/sbt-vcpkg/vcpkg-install
+            ~/.cache/sbt-vcpkg/vcpkg
+          key: ${{ matrix.OS }}-sbt-vcpkg
+
+
+      - name: Build the app
+        run: sbt buildApp
+

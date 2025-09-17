@@ -2,13 +2,13 @@ package bindgen.web.internal.jobs
 
 case class SkunkConfig(
     maxSessions: Int,
-    strategy: skunk.Strategy,
+    strategy: skunk.TypingStrategy,
     debug: Boolean
 )
 
 object SkunkConfig
     extends SkunkConfig(
       maxSessions = 2,
-      strategy = skunk.Strategy.SearchPath,
+      strategy = skunk.TypingStrategy.SearchPath,
       debug = false
     )

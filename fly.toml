@@ -4,16 +4,12 @@
 #
 
 app = "sn-bindgen-web"
-kill_signal = "SIGINT"
-kill_timeout = 5
 primary_region = "lhr"
+
 
 [mounts]
   source="sn_bindgen_web_data"
   destination="/var/data/bindgen-web"
-
-[experimental]
-  auto_rollback = true
 
 [http_service]
   internal_port = 8080
@@ -21,14 +17,12 @@ primary_region = "lhr"
   auto_stop_machines = true
   auto_start_machines = true
   min_machines_running = 0
-  [http_service.concurrency]
-    type = "requests"
-    soft_limit = 200
-    hard_limit = 250
 
-[[http_service.checks]]
-  grace_period = "10s"
-  interval = "10s"
-  method = "GET"
-  timeout = "5s"
-  path = "/api/health"
+# [[services.http_checks]]
+#   interval = 10000
+#   grace_period = "5s"
+#   method = "get"
+#   path = "/api/health"
+#   protocol = "http"
+#   timeout = 2000
+#   tls_skip_verify = false

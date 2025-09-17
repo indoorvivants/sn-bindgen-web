@@ -3,33 +3,37 @@ import scala.scalanative.build.Mode
 import org.scalajs.linker.interface.ModuleSplitStyle
 
 val V = new {
-  val Scala = "3.5.0-RC1"
+  val Scala = "3.7.3"
 
-  val snunit = "0.8.0"
+  val snunit = "0.10.4-1-4585f3-SNAPSHOT"
 
-  val snCrypto = "0.0.4"
+  val snCrypto = "0.1.0"
 
-  val http4s = "0.23.27"
+  val http4s = "0.23.30-161-f5b9629-SNAPSHOT"
 
-  val fs2 = "3.6.1"
+  val fs2 = "3.13.0-M7"
 
-  val scribe = "3.13.2"
+  val scribe = "3.17.0"
 
-  val opaqueNewtypes = "0.0.2"
+  val opaqueNewtypes = "0.1.0"
 
-  val skunk = "1.0.0-M6"
+  val skunk = "1.0-7f46fa8-SNAPSHOT"
 
   val macroTaskExecutor = "1.1.1"
 
-  val laminar = "17.0.0"
+  val laminar = "17.2.1"
 
-  val circe = "0.14.7"
+  val circe = "0.14.14"
 
   val waypoint = "8.0.0"
 
   val http4sDom = "0.2.11"
 
-  val bindgen = "0.1.2"
+  val bindgen = "0.2.4"
+
+  val dumbo = "0.6.0-9-f0f2e0f-SNAPSHOT"
+
+  val smithy4sFetch = "0.0.4"
 }
 
 val isScala3 = Seq(VirtualAxis.scalaABIVersion(V.Scala))
@@ -50,8 +54,8 @@ lazy val root = project
   .in(file("."))
   .aggregate(frontend.projectRefs*)
   .aggregate(protocols.projectRefs*)
-  .aggregate(`http-server`.projectRefs*)
-  .aggregate(`queue-processor`.projectRefs*)
+  .aggregate(httpServer.projectRefs*)
+  .aggregate(queueProcessor.projectRefs*)
   .aggregate(bindings.projectRefs*)
   .settings(
     publish / skip      := true,
@@ -74,11 +78,12 @@ lazy val frontend =
             ModuleSplitStyle.SmallModulesFor(List("bindgen.web"))
           )
       },
+      scalacOptions += "-Wunused:all",
       libraryDependencies ++= Seq(
-        "org.http4s"   %%% "http4s-dom"                  % V.http4sDom,
         "com.raquo"    %%% "laminar"                     % V.laminar,
         "com.raquo"    %%% "waypoint"                    % V.waypoint,
-        "org.scala-js" %%% "scala-js-macrotask-executor" % V.macroTaskExecutor
+        "org.scala-js" %%% "scala-js-macrotask-executor" % V.macroTaskExecutor,
+        "tech.neander" %%% "smithy4s-fetch"              % V.smithy4sFetch
       )
     )
 
@@ -91,17 +96,22 @@ lazy val protocols =
     .enablePlugins(Smithy4sCodegenPlugin)
     .settings(
       remoteCache,
+      resolvers += Resolver.sonatypeCentralSnapshots,
       libraryDependencies += "com.disneystreaming.smithy4s" %%% "smithy4s-http4s" % smithy4sVersion.value
     )
 
-lazy val `http-server` =
+lazy val httpServer =
   projectMatrix
     .in(file("modules/http-server"))
     .dependsOn(protocols)
     .defaultAxes((isScala3 ++ isNative)*)
-    .enablePlugins(ScalaNativePlugin, VcpkgNativePlugin)
+    .enablePlugins(ScalaNativePlugin, VcpkgNativePlugin, NativeBinaryPlugin)
     .nativePlatform(Seq(V.Scala))
     .settings(
+      buildBinaryConfig := buildBinaryConfig.value
+        .withName("bindgen-web-http-server")
+        .addDestinationDir((ThisBuild / baseDirectory).value / "out" / "unit"),
+      resolvers += Resolver.sonatypeCentralSnapshots,
       libraryDependencies += "com.github.lolgab" %%% "snunit-http4s0.23" % V.snunit,
       libraryDependencies += "com.github.lolgab" %%% "scala-native-crypto" % V.snCrypto,
       libraryDependencies += "org.http4s" %%% "http4s-dsl"          % V.http4s,
@@ -146,29 +156,34 @@ lazy val bindings =
       }
     )
 
-lazy val `queue-processor` =
+lazy val queueProcessor =
   projectMatrix
     .in(file("modules/queue-processor"))
     .dependsOn(protocols, bindings)
     .defaultAxes((isScala3 ++ isNative)*)
     .nativePlatform(Seq(V.Scala))
-    .enablePlugins(ScalaNativePlugin, VcpkgNativePlugin)
+    .enablePlugins(ScalaNativePlugin, VcpkgNativePlugin, NativeBinaryPlugin)
     .settings(
       remoteCache,
       vcpkgSettings,
       bindgenBinary := file(".no"),
-      resolvers += Resolver.sonatypeRepo("snapshots"),
-      libraryDependencies += ("com.indoorvivants" % "bindgen_native0.4_3" % V.bindgen)
-        .classifier(""),
-      libraryDependencies += "io.circe" %%% "circe-parser" % V.circe,
+      buildBinaryConfig := buildBinaryConfig.value
+        .withName("bindgen-web-queue-processor")
+        .addDestinationDir((ThisBuild / baseDirectory).value / "out" / "unit"),
+      resolvers += Resolver.sonatypeCentralSnapshots,
+      libraryDependencies += "com.indoorvivants" %%% "bindgen"      % V.bindgen,
+      libraryDependencies += "io.circe"          %%% "circe-parser" % V.circe,
       libraryDependencies += "com.indoorvivants" %%% "opaque-newtypes" % V.opaqueNewtypes, // SBT
       libraryDependencies += "com.github.lolgab" %%% "snunit-http4s0.23" % V.snunit,
       libraryDependencies += "com.github.lolgab" %%% "scala-native-crypto" % V.snCrypto,
       libraryDependencies += "com.outr"     %%% "scribe-cats" % V.scribe,
       libraryDependencies += "org.http4s"   %%% "http4s-dsl"  % V.http4s,
       libraryDependencies += "org.tpolecat" %%% "skunk-core"  % V.skunk,
-      libraryDependencies += "dev.rolang"   %%% "dumbo"       % "0.3.3",
-      nativeConfig ~= { _.withIncrementalCompilation(true).withEmbedResources(true) },
+      libraryDependencies += "dev.rolang"   %%% "dumbo"       % V.dumbo,
+      (Compile / compile) := ((Compile / compile) dependsOn (Compile / copyResources)).value,
+      nativeConfig ~= {
+        _.withIncrementalCompilation(true).withEmbedResources(true)
+      },
       nativeConfig ~= usesLibClang,
       scalacOptions += "-Wunused:all"
     )
@@ -187,15 +202,18 @@ import scala.sys.process
 
 val buildApp = taskKey[File]("")
 ThisBuild / buildApp := {
-  locally { buildWeb.value }
-  locally { buildWorker.value }
-  locally { buildFrontend.value }
+  val web       = (httpServer.native(V.Scala) / buildBinaryDebug).value
+  val processor = (queueProcessor.native(V.Scala) / buildBinaryDebug).value
+  val frontend  = buildWebapp.value
 
-  val dest     = (ThisBuild / baseDirectory).value / "build"
+  val dest     = (ThisBuild / baseDirectory).value / "out" / "unit" / "debug"
   val statedir = dest / "statedir"
-  IO.createDirectory(statedir)
 
-  IO.copyFile(dest.getParentFile() / "conf.json", statedir / "conf.json")
+  IO.createDirectory(statedir)
+  IO.copyFile(
+    (ThisBuild / baseDirectory).value / "conf.json",
+    statedir / "conf.json"
+  )
 
   dest
 
@@ -203,122 +221,97 @@ ThisBuild / buildApp := {
 
 val buildBackend = taskKey[File]("")
 ThisBuild / buildBackend := {
-  locally { buildWeb.value }
-  locally { buildWorker.value }
+  val web       = (httpServer.native(V.Scala) / buildBinaryDebug).value
+  val processor = (queueProcessor.native(V.Scala) / buildBinaryDebug).value
 
-  val dest     = (ThisBuild / baseDirectory).value / "build"
+  val dest     = (ThisBuild / baseDirectory).value / "out" / "unit" / "debug"
   val statedir = dest / "statedir"
   IO.createDirectory(statedir)
 
-  IO.copyFile(dest.getParentFile() / "conf.json", statedir / "conf.json")
+  IO.copyFile(
+    (ThisBuild / baseDirectory).value / "conf.json",
+    statedir / "conf.json"
+  )
 
   dest
 
 }
 
-lazy val frontendFile = taskKey[File]("")
-frontendFile := Def.taskIf {
-  if (sys.env.get("CI").isDefined)
-    (frontend.js(V.Scala) / Compile / fullLinkJSOutput).value
-  else
-    (frontend.js(V.Scala) / Compile / fastLinkJSOutput).value
+val buildAppRelease = taskKey[File]("")
+ThisBuild / buildAppRelease := {
+  val web       = (httpServer.native(V.Scala) / buildBinaryRelease).value
+  val processor = (queueProcessor.native(V.Scala) / buildBinaryRelease).value
+  val frontend  = buildWebappRelease.value
 
-}.value
+  val dest     = (ThisBuild / baseDirectory).value / "out" / "unit" / "release"
+  val statedir = dest / "statedir"
+  IO.createDirectory(statedir)
 
-lazy val buildFrontend = taskKey[Unit]("")
-buildFrontend := {
-  val js        = frontendFile.value / "main.js"
-  val buildPath = ((ThisBuild / baseDirectory).value / "build")
-  import com.indoorvivants.yank.*
-  val tailwind =
-    tools.TailwindCSS.bootstrap(tools.TailwindCSS.Config(version = "3.3.2"))
+  IO.copyFile(
+    (ThisBuild / baseDirectory).value / "conf.json",
+    statedir / "conf.json"
+  )
+
+
+  dest
+
+}
+
+lazy val buildWebapp = taskKey[File]("")
+ThisBuild / buildWebapp := {
+  val dest       = (ThisBuild / baseDirectory).value / "out" / "unit" / "debug"
+  val webappRoot = (ThisBuild / baseDirectory).value / "modules" / "frontend"
 
   import scala.sys.process.*
-  val s = streams.value
 
-  val inputCss = s.cacheDirectory / "input.css"
-  if (!inputCss.exists())
-    IO.write(
-      inputCss,
-      """
-        |@tailwind base;
-        |@tailwind components;
-        |@tailwind utilities;
-        """.stripMargin
-    )
 
-  val destination = buildPath / "static"
-
-  IO.write(
-    destination / "index.html",
-    """
-      <!DOCTYPE html>
-      <html lang="en">
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <meta http-equiv="X-UA-Compatible" content="ie=edge">
-          <link rel="stylesheet"
-          href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/night-owl.min.css">
-          <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
-          <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/scala.min.js"></script>
-          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.45.0/codemirror.min.css">
-          <link rel="stylesheet" href="/styles.css">
-          <title>Scala 3 Native bindings generator</title>
-        </head>
-        <body class = "bg-blue-950">
-        <div id="appContainer"></div>
-        <script src="/frontend.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.45.0/codemirror.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.45.0/mode/clike/clike.js"></script>
-        </body>
-      </html>
-    """.stripMargin
+  assert(
+    Process("npm install", cwd = webappRoot).! == 0,
+    "Command [npm install] did not finish successfully"
   )
-  val minify = if (sys.env.contains("CI")) "--minify" else ""
 
-  val css =
-    s"$tailwind -i $inputCss $minify --content ${js},${destination / "index.html"}".!!
 
-  IO.write(destination / "styles.css", css)
+  assert(
+    Process("npm run build", cwd = webappRoot).! == 0,
+    "Command [npm run build] did not finish successfully"
+  )
 
-  IO.copyFile(js, destination / "frontend.js")
+  println(dest)
+
+  val staticDest = dest / "static"
+
+  IO.delete(staticDest)
+  IO.createDirectory(staticDest)
+  IO.copyDirectory(webappRoot / "dist", staticDest)
+
+  staticDest
 }
 
-val buildWorker = taskKey[Unit]("")
-buildWorker := {
-  val target = (`queue-processor`.native(V.Scala) / Compile / nativeLink).value
+lazy val buildWebappRelease = taskKey[File]("")
+ThisBuild / buildWebappRelease := {
+  val dest = (ThisBuild / baseDirectory).value / "out" / "unit" / "release"
+  val webappRoot = (ThisBuild / baseDirectory).value / "modules" / "frontend"
 
-  val destination =
-    (ThisBuild / baseDirectory).value / "build" / "worker"
+  import scala.sys.process.*
 
-  IO.delete(destination)
-
-  IO.copyFile(
-    target,
-    destination,
-    preserveExecutable = true,
-    preserveLastModified = true
+  assert(
+    Process("npm install", cwd = webappRoot).! == 0,
+    "Command [npm install] did not finish successfully"
   )
-}
 
-val buildWeb = taskKey[Unit]("")
-buildWeb := {
-  val target = (`http-server`.native(V.Scala) / Compile / nativeLink).value
-
-  val destination = (ThisBuild / baseDirectory).value / "build" / "web-server"
-
-  IO.delete(destination)
-
-  IO.copyFile(
-    target,
-    destination,
-    preserveExecutable = true,
-    preserveLastModified = true
+  assert(
+    Process("npm run build", cwd = webappRoot).! == 0,
+    "Command [npm run build] did not finish successfully"
   )
-}
 
-Global / onChangedBuildSource := ReloadOnSourceChanges
+  val staticDest = dest / "static"
+
+  IO.delete(staticDest)
+  IO.createDirectory(staticDest)
+  IO.copyDirectory(webappRoot / "dist", staticDest)
+
+  staticDest
+}
 
 import scala.scalanative.build.NativeConfig
 import com.indoorvivants.detective.Platform
@@ -414,13 +407,11 @@ runServer := {
   val dest = buildApp.value
 
   import scala.sys.process.*
-  val data = (ThisBuild / baseDirectory).value / "data" / "worker.db"
 
   val proc = Process(
     UNITD_LOCAL_COMMAND,
     cwd = dest,
-    "WORKER_HOST" -> "http://localhost:8081",
-    "DB_PATH"     -> data.toString
+    "WORKER_HOST" -> "http://localhost:8081"
   )
 
   proc.!
@@ -435,10 +426,10 @@ lazy val devServer = project
     envVars ++= Map(
       "SERVER_BINARY" -> (ThisBuild / buildBackend).value.toString,
       "UNITD_COMMAND" -> UNITD_LOCAL_COMMAND,
-      "SERVER_CWD"    -> ((ThisBuild / baseDirectory).value / "build").toString,
-      "WORKER_HOST"   -> "http://localhost:8081",
-      // "DB_PATH" -> ((ThisBuild / baseDirectory).value / "data" / "worker.db").toString,
-      "LLVM_BIN" -> sys.env.getOrElse("LLVM_BIN", "/opt/homebrew/opt/llvm@17/bin"),
-      "DATABASE_URL" -> "postgres://sn_bindgen_web:U6dsj7lXhnYxjEc@sn-bindgen-web-db.flycast:5432/sn_bindgen_web?sslmode=disable"
+      "SERVER_CWD" -> ((ThisBuild / baseDirectory).value / "out" / "unit" / "debug").toString,
+      "WORKER_HOST" -> "http://localhost:8081",
+      "LLVM_BIN" -> sys.env
+        .getOrElse("LLVM_BIN", "/opt/homebrew/opt/llvm@17/bin"),
+      "DATABASE_URL" -> "postgres://sn_bindgen_web@localhost:5432/sn_bindgen_web?sslmode=disable"
     )
   )

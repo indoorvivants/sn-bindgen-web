@@ -1,6 +1,6 @@
 FROM keynmol/sn-vcpkg:latest as dev
 
-ARG unit_version=1.31.1
+ARG unit_version=1.34.1
 ENV UNIT_VERSION=${unit_version}
 
 # Install all native dependencies
@@ -32,13 +32,21 @@ COPY vcpkg.json .
 ENV VCPKG_FORCE_SYSTEM_BINARIES=1
 RUN sn-vcpkg install -v --manifest vcpkg.json
 
+COPY publish-forks.sh .forks/publish-forks.sh
+ENV LC_CTYPE=en_US.UTF-8
+ENV LANG=en_US.UTF-8
+RUN cd .forks && ./publish-forks.sh
+
 # build app
-ARG scalanative_mode=release-fast
-ARG scalanative_lto=thin
-ENV SCALANATIVE_MODE=${scalanative_mode}
-ENV SCALANATIVE_LTO=${scalanative_lto}
 ENV CI=true
 ENV LLVM_BIN=/usr/lib/llvm-17/bin
+RUN if [ "$(uname -m)" = "x86_64" ]; then \
+    curl -Lo node-install.tar.xz https://nodejs.org/dist/v22.18.0/node-v22.18.0-linux-x64.tar.xz; \
+    else \
+    curl -Lo node-install.tar.xz https://nodejs.org/dist/v22.18.0/node-v22.18.0-linux-arm64.tar.xz; \
+    fi && \
+    tar -xf node-install.tar.xz && rm *.tar.xz && mv node-v22* node-install
+ENV PATH /workdir/node-install/bin:$PATH
 COPY project/plugins.sbt project/
 COPY project/*.scala project/
 COPY build.sbt .
@@ -47,9 +55,9 @@ COPY .jvmopts .
 COPY modules/bindings/src modules/bindings/src
 COPY modules/http-server/src modules/http-server/src
 COPY modules/protocols/src modules/protocols/src
-COPY modules/frontend/src modules/frontend/src
+COPY modules/frontend modules/frontend
 COPY modules/queue-processor/src modules/queue-processor/src
-RUN sbt buildApp
+RUN sbt buildAppRelease
 
 RUN mkdir empty_dir
 RUN mkdir empty_tmp_dir && chmod 0777 empty_tmp_dir
@@ -58,11 +66,9 @@ RUN groupadd --gid 999 unit && \
 RUN cat /etc/passwd | grep unit > passwd
 RUN cat /etc/group | grep unit > group
 
-RUN chown unit:unit build/web-server
-RUN chown unit:unit build/worker
+RUN chown -R unit:unit out/unit/release
+# RUN chown unit:unit build/worker
 RUN chown unit:unit empty_tmp_dir
-
-RUN ldd build/worker
 RUN ldd /usr/lib/llvm-17/bin/clang
 
 
@@ -70,10 +76,10 @@ FROM ubuntu:focal
 
 WORKDIR /workdir
 
-COPY --from=dev /workdir/build/statedir /workdir/statedir
-COPY --from=dev /workdir/build/web-server /workdir/web-server
-COPY --from=dev /workdir/build/worker /workdir/worker
-COPY --from=dev /workdir/build/static /workdir/static
+COPY --from=dev /workdir/out/unit/release/statedir /workdir/statedir
+COPY --from=dev /workdir/out/unit/release/bindgen-web-http-server /workdir/
+COPY --from=dev /workdir/out/unit/release/bindgen-web-queue-processor /workdir/
+COPY --from=dev /workdir/out/unit/release/static /workdir/static
 
 
 # unitd dependencies
@@ -148,9 +154,8 @@ COPY --from=dev /usr/lib/llvm-17/bin/clang /usr/lib/llvm-17/bin/
 
 
 ENV WORKER_HOST=http://localhost:8081
-ENV DB_PATH=/var/data/bindgen-web/data.db
 ENV LLVM_BIN=/usr/lib/llvm-17/bin
-ENV TEMP_PATH=/var/data/bindgen-web/tmp
+# ENV TEMP_PATH=/var/data/bindgen-web/tmp
 
-ENTRYPOINT [ "bash", "-c", "chown -R unit:unit /var/data/bindgen-web/ && unitd --no-daemon --log /dev/stdout" ]
+ENTRYPOINT [ "unitd",  "--no-daemon", "--log", "/dev/stdout" ]
 

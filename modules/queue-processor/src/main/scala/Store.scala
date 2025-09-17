@@ -354,12 +354,13 @@ object Store:
   end open
 
   def migrate(postgres: PgCredentials)(using Tracer[IO]) =
+
+    given dumbo.logging.Logger[IO] =
+      case (dumbo.logging.LogLevel.Info, message) => Log.info(message)
+      case (dumbo.logging.LogLevel.Warn, message) => Log.warn(message)
+
     Dumbo
-      .withResources[IO](
-        List(
-          ResourceFilePath.fromResource("/db/migration/V1__init.sql")
-        )
-      )
+      .withResourcesIn[IO]("db/migration")
       .apply(
         connection = ConnectionConfig(
           host = postgres.host,
@@ -367,7 +368,7 @@ object Store:
           user = postgres.user,
           database = postgres.database,
           password = postgres.password,
-          ssl = if postgres.ssl then skunk.SSL.Trusted else skunk.SSL.None
+          ssl = if postgres.ssl then ConnectionConfig.SSL.Trusted else ConnectionConfig.SSL.None
         ),
         defaultSchema = "public"
       )

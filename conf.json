@@ -49,7 +49,7 @@
         "spare": 2
       },
       "type": "external",
-      "executable": "worker"
+      "executable": "bindgen-web-queue-processor"
     },
     "web": {
       "processes": {
@@ -58,7 +58,7 @@
         "idle_timeout": 180
       },
       "type": "external",
-      "executable": "web-server"
+      "executable": "bindgen-web-http-server"
     }
   }
 }
