@@ -42,7 +42,7 @@ jobs:
           make build/sbin/unitd && \
           make build/lib/libunit.a && \
           sudo install -p build/lib/libunit.a /usr/local/lib/libunit.a && \
-          mv build/sbin/unitd /usr/sbin/unitd && \
+          sudo mv build/sbin/unitd /usr/sbin/unitd && \
           sudo apt install -y lsb-release wget software-properties-common gnupg && \
           curl -Lo llvm.sh https://apt.llvm.org/llvm.sh && \
           chmod +x llvm.sh && \
