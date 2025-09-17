@@ -13,7 +13,7 @@ git clone https://github.com/tpolecat/SourcePos && \
   cd SourcePos && \
   git checkout v1.2.0 && \
   git checkout -- . && \
-  sbt "++3.x sourceposNative/publishLocal"  && \
+  GITHUB_REF_TYPE=tag sbt "++3.x sourceposNative/publishLocal"  && \
   cd ../  
 
 
