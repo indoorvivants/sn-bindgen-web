@@ -264,6 +264,13 @@ ThisBuild / buildWebapp := {
 
   import scala.sys.process.*
 
+
+  assert(
+    Process("npm install", cwd = webappRoot).! == 0,
+    "Command [npm install] did not finish successfully"
+  )
+
+
   assert(
     Process("npm run build", cwd = webappRoot).! == 0,
     "Command [npm run build] did not finish successfully"
@@ -286,6 +293,11 @@ ThisBuild / buildWebappRelease := {
   val webappRoot = (ThisBuild / baseDirectory).value / "modules" / "frontend"
 
   import scala.sys.process.*
+
+  assert(
+    Process("npm install", cwd = webappRoot).! == 0,
+    "Command [npm install] did not finish successfully"
+  )
 
   assert(
     Process("npm run build", cwd = webappRoot).! == 0,

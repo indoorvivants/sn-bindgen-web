@@ -57,7 +57,6 @@ COPY modules/http-server/src modules/http-server/src
 COPY modules/protocols/src modules/protocols/src
 COPY modules/frontend modules/frontend
 COPY modules/queue-processor/src modules/queue-processor/src
-RUN cd modules/frontend && npm install
 RUN sbt buildAppRelease
 
 RUN mkdir empty_dir
