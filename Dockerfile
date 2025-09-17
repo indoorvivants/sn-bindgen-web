@@ -155,7 +155,7 @@ COPY --from=dev /usr/lib/llvm-17/bin/clang /usr/lib/llvm-17/bin/
 
 ENV WORKER_HOST=http://localhost:8081
 ENV LLVM_BIN=/usr/lib/llvm-17/bin
-ENV TEMP_PATH=/var/data/bindgen-web/tmp
+# ENV TEMP_PATH=/var/data/bindgen-web/tmp
 
 ENTRYPOINT [ "unitd",  "--no-daemon", "--log", "/dev/stdout" ]
 

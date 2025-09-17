@@ -7,11 +7,12 @@ cd $(mktemp -d)
 echo "Working in $(pwd)"
 
 export JAVA_OPTS="-Xmx4G"
-export CI=false
+
 echo "===SOURCEPOS==="
 git clone https://github.com/tpolecat/SourcePos && \
   cd SourcePos && \
   git checkout v1.2.0 && \
+  git checkout -- . && \
   sbt "++3.x sourceposNative/publishLocal"  && \
   cd ../  
 
