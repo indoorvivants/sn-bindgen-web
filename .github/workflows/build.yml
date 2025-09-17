@@ -41,6 +41,10 @@ jobs:
             ~/.cache/sbt-vcpkg/vcpkg
           key: ${{ matrix.OS }}-sbt-vcpkg
 
+      - run: |
+          ./.github/workflows/scripts/setup_unix.sh
+          echo "LLVM_BIN=/usr/lib/llvm-17/bin" >> $GITHUB_ENV
+
       - name: Build the app
         run: sbt buildApp
 
