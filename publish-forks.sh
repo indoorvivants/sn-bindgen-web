@@ -7,6 +7,14 @@ cd $(mktemp -d)
 echo "Working in $(pwd)"
 
 export JAVA_OPTS="-Xmx4G"
+export CI=false
+echo "===SOURCEPOS==="
+git clone https://github.com/tpolecat/SourcePos && \
+  cd SourcePos && \
+  git checkout v1.2.0 && \
+  sbt "++3.x sourceposNative/publishLocal"  && \
+  cd ../  
+
 
 echo "===SMITHY4S==="
 git clone https://github.com/majk-p/smithy4s && \
@@ -15,12 +23,6 @@ git clone https://github.com/majk-p/smithy4s && \
   git fetch --tags https://github.com/disneystreaming/smithy4s &&
   sbt "jsonNative3/publishLocal; catsNative3/publishLocal; coreNative3/publishLocal; http4s-kernelNative3/publishLocal; http4sNative3/publishLocal; jsonJS3/publishLocal; coreJS3/publishLocal; catsJS3/publishLocal; http4s-kernelJS3/publishLocal; http4sJS3/publishLocal; codegenPlugin2_12/publishLocal"  && \
   cd ../
-
-echo "===SOURCEPOS==="
-git clone https://github.com/tpolecat/SourcePos && \
-  cd SourcePos && \
-  sbt "++3.x sourceposNative/publishLocal"  && \
-  cd ../  
 
 echo "===SKUNK==="
 git clone https://github.com/keynmol/skunk && \
