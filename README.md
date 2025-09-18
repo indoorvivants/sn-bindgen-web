@@ -2,7 +2,7 @@
 
 Try it on **https://sn-bindgen-web.fly.dev**
 
-![2023-05-29 12 01 15](https://github.com/indoorvivants/sn-bindgen-web/assets/1052965/85d0144c-f431-49e3-a45c-b644fc642cf7)
+![CleanShot 2025-09-18 at 10 52 14](https://github.com/user-attachments/assets/6679164d-4742-4b07-9876-d1028828e688)
 
 <!--toc:start-->
 - [Web app to generate Scala 3 Native bindings for C](#web-app-to-generate-scala-3-native-bindings-for-c)
