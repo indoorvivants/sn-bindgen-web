@@ -1,6 +1,10 @@
 #
 name: Build app
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 # Configures this workflow to run every time a change is pushed to the branch called `release`.
 on:
   push:
