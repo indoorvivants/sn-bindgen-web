@@ -101,3 +101,5 @@ If you want, you can run [`mprocs`](https://github.com/pvolok/mprocs) tool in th
 The docker container is designed to be entirely self-contained, and will install all dependencies from scratch – so it will take a long time.
 
 It's designed in a layered fashion to ensure caching of intermediate builds, but it still takes a long time.
+
+We also publish the Docker container built on CI to GHA registry: https://github.com/indoorvivants/sn-bindgen-web/pkgs/container/sn-bindgen-web
