@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y curl build-essential libpcre2-dev && \
     chmod +x llvm.sh && \
     ./llvm.sh 17 && \
     apt update && \
-    apt install -y libclang-17-dev libz-dev libutf8proc-dev
+    apt install -y libclang-17-dev libz-dev 
 
 WORKDIR /workdir
 
@@ -28,6 +28,7 @@ COPY project/build.properties project/
 RUN sbt --sbt-create version
 
 # install vcpkg dependencies
+RUN sn-vcpkg bootstrap
 COPY vcpkg.json .
 ENV VCPKG_FORCE_SYSTEM_BINARIES=1
 RUN sn-vcpkg install -v --manifest vcpkg.json

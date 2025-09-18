@@ -18,6 +18,10 @@
     {
       "name": "openssl",
       "version>=": "3.0.5"
+    },
+    {
+      "name": "utf8proc",
+      "version>=": "2.10.0"
     }
   ]
 }

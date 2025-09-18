@@ -1,0 +1,8 @@
+procs:
+  backend:
+    shell: "sbt '~;devServer/reStart;frontend/fastLinkJS'"
+    autorestart: true
+  vite: 
+    shell: "npm run dev"
+    cwd: "modules/frontend"
+    autorestart: true

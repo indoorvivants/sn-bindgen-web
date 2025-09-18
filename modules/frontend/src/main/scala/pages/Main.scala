@@ -72,7 +72,6 @@ def renderMainPage(
   div(
     updater,
     cls := "container",
-    pageTitle,
     p(
       cls := "recent-bindings-title",
       "Recent bindings",

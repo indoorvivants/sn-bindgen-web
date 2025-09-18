@@ -20,8 +20,9 @@ val loginRoute = Route.static(Page.Main, root)
 
 val router = new Router[Page](
   routes = List(bindingPageRoute, loginRoute),
-  getPageTitle =
-    _.toString, // mock page title (displayed in the browser tab next to favicon)
+  getPageTitle = _ match
+    case Page.Main            => "Scala 3 Native bindings generator"
+    case Page.BindingPage(id) => s"Binding ${id}",
   serializePage = page =>
     page match
       case Page.Main            => ""

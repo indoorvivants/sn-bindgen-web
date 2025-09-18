@@ -11,15 +11,46 @@ div.container {
 
 
 body {
-    background-color: rgb(7, 112, 107);
+    background-color: rgb(5, 81, 77);
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
 }
 
-.page-title {
-    font-size: 3rem;
-    color: #333;
-    margin: 2rem 0;
+div.title-container {
+    display: flex;
+    flex-direction: row;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+    justify-content: flex-start;
+}
+
+div.title-container>* {
+    flex: 1
+}
+
+p.intro {
+    font-size: 1rem;
+    color: #eee;
+    margin: 0.5rem 0 1rem 0;
+}
+
+p.intro a {
+    color: #90cdf4;
+    text-decoration: none;
+    font-size: 1rem;
+}
+
+p.intro a:hover {
+    text-decoration: underline;
+}
+
+h1.page-title {
+    font-size: 2.5rem;
+    color: #ffffff;
     font-weight: bold;
+    margin: 0;
 }
 
 form.binding-form {
@@ -107,12 +138,6 @@ h2.section-header {
     font-weight: bold;
 }
 
-h1.page-title {
-    font-size: 3rem;
-    color: #ffffff;
-    margin: 1rem 0;
-    font-weight: bold;
-}
 
 h3.subtitle {
     font-size: 1.5rem;

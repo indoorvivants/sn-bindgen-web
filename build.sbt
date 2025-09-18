@@ -184,7 +184,7 @@ lazy val queueProcessor =
       nativeConfig ~= {
         _.withIncrementalCompilation(true).withEmbedResources(true)
       },
-      nativeConfig ~= usesLibClang,
+      nativeConfig := usesLibClang(nativeConfig.value, sLog.value),
       scalacOptions += "-Wunused:all"
     )
 
@@ -193,7 +193,7 @@ lazy val vcpkgSettings = Seq(
     .ManifestFile((ThisBuild / baseDirectory).value / "vcpkg.json"),
   vcpkgNativeConfig ~= {
     _.withRenamedLibraries(
-      Map("zstd" -> "libzstd")
+      Map("zstd" -> "libzstd", "utf8proc" -> "libutf8proc")
     )
   }
 )
@@ -252,7 +252,6 @@ ThisBuild / buildAppRelease := {
     statedir / "conf.json"
   )
 
-
   dest
 
 }
@@ -264,12 +263,10 @@ ThisBuild / buildWebapp := {
 
   import scala.sys.process.*
 
-
   assert(
     Process("npm install", cwd = webappRoot).! == 0,
     "Command [npm install] did not finish successfully"
   )
-
 
   assert(
     Process("npm run build", cwd = webappRoot).! == 0,
@@ -318,11 +315,11 @@ import com.indoorvivants.detective.Platform
 
 import java.nio.file.Paths
 
-def usesLibClang(conf: NativeConfig) = {
+def usesLibClang(conf: NativeConfig, logger: sbt.Logger) = {
   val libraryName =
     if (Platform.os == Platform.OS.Windows) "libclang" else "clang"
 
-  val detected = llvmFolder(conf.clang.toAbsolutePath())
+  val detected = llvmFolder(conf.clang.toAbsolutePath(), logger)
 
   val arm64 =
     if (Platform.arch == Platform.Arch.Arm) Seq("-arch", "arm64") else Seq.empty
@@ -338,11 +335,11 @@ def usesLibClang(conf: NativeConfig) = {
     )
 }
 
-def llvmFolder(clangPath: java.nio.file.Path): LLVMInfo = {
+def llvmFolder(clangPath: java.nio.file.Path, logger: sbt.Logger): LLVMInfo = {
   import Platform.OS.*
 
   Platform.os match {
-    case MacOS =>
+    case MacOS | Linux =>
       val detected =
         sys.env
           .get("LLVM_BIN")
@@ -352,22 +349,44 @@ def llvmFolder(clangPath: java.nio.file.Path): LLVMInfo = {
           .toList
 
       val speculative =
-        if (detected.isEmpty)
-          List(
-            Paths.get("/usr/local/opt/llvm@14"),
-            Paths.get("/usr/local/opt/llvm"),
-            Paths.get("/opt/homebrew/opt/llvm@14"),
-            Paths.get("/opt/homebrew/opt/llvm")
+        if (detected.isEmpty) {
+          logger.warn(
+            "LLVM_BIN variable not set, will try to detect any LLVM installation (only works on Linux and MacOS)"
           )
-        else Nil
+          for {
+            llV <- (17 until 21)
+            fld <- List(
+              s"/opt/homebrew/opt/llvm@$llV",
+              s"/usr/local/opt/llvm@$llV",
+              s"/usr/lib/llvm-$llV"
+            )
+          } yield Paths.get(fld)
+        } else Nil
 
-      val all = (detected ++ speculative).dropWhile(!_.toFile.exists())
+      val all = (detected ++ speculative)
+        .dropWhile(!_.toFile.exists())
+        .filter { path =>
+          path.resolve("include").toFile().isDirectory() &&
+          path.resolve("lib").toFile().isDirectory() &&
+          path.resolve("bin/clang").toFile().isFile()
 
-      val includes = all
+        }
+        .headOption
+
+      all match {
+        case None =>
+          logger.error(
+            s"Could not detect LLVM installation in any of the paths: [${speculative.mkString(", ")}]"
+          )
+        case Some(path) =>
+          logger.warn(s"LLVM installation was detected in $path")
+      }
+
+      val includes = all.toList
         .map(_.resolve("include"))
         .map(_.toAbsolutePath().toString)
 
-      val lib = all
+      val lib = all.toList
         .map(_.resolve("lib"))
         .map(_.toAbsolutePath().toString)
 
@@ -375,7 +394,7 @@ def llvmFolder(clangPath: java.nio.file.Path): LLVMInfo = {
         llvmInclude = includes,
         llvmLib = lib
       )
-    case Linux | Windows =>
+    case Windows =>
       // <llvm-path>/bin/clang
       val realPath   = clangPath.toRealPath()
       val binFolder  = realPath.getParent()

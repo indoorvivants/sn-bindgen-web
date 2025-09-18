@@ -123,7 +123,6 @@ def renderFailed(failed: Failed) =
   div(b(s"Failed: ${failed.message}"), diags)
 end renderFailed
 
-
 def renderBindingId(
     idSignal: Observable[JobId],
     showSource: Boolean,
@@ -178,7 +177,6 @@ def renderBindingPage(
 ): Div =
   div(
     cls := "container",
-    pageTitle,
     renderBindingId(
       userPageSignal.map(_.id),
       showSource = true,
