@@ -48,9 +48,9 @@ The bindings are stored in a Postgres database, with schema broken into [individ
 
 ### Libraries
 
-This app is a testing bed for [Cats Effect](https://typelevel.org/cats-effect/) ecosystem running on Scala Native. The HTTP layer is provided by [http4s](https://http4s.org/), NGINX Unit interaction is provided by [snunit](https://github.com/lolgab/snunit), database access is via [Skunk](https://typelevel.org/skunk) with [Dumbo](https://github.com/rolang/dumbo) providing migrations, background processing is done using [fs2](https://fs2.io/), the API layer is generated using [Smithy4s](https://disneystreaming.github.io/smithy4s/), and we use [Scribe](https://github.com/outr/scribe) for logging.
+This app is a testing bed for [Cats Effect](https://typelevel.org/cats-effect/) ecosystem running on [Scala Native](https://scala-native.org). The HTTP layer is provided by [http4s](https://http4s.org/), NGINX Unit interaction is provided by [snunit](https://github.com/lolgab/snunit), database access is via [Skunk](https://typelevel.org/skunk) with [Dumbo](https://github.com/rolang/dumbo) providing migrations, background processing is done using [fs2](https://fs2.io/), the API layer is generated using [Smithy4s](https://disneystreaming.github.io/smithy4s/), and we use [Scribe](https://github.com/outr/scribe) for logging.
 
-On the frontend, we use Smithy4s definitions with a [smithy4s-fetch](https://github.com/neandertech/smithy4s-fetch) client based on browser [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) – this provides a ~40% reduction in the frontend bundle size
+Frontend is entirely [Scala.js](https://scala-js.org), we use Smithy4s definitions with a [smithy4s-fetch](https://github.com/neandertech/smithy4s-fetch) client based on browser [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) – this provides a ~40% reduction in the frontend bundle size. Main UI library is [Laminar](https://laminar.dev/), with [Waypoint](https://github.com/raquo/waypoint) providing the routing for [SPA](https://en.wikipedia.org/wiki/Single-page_application).
 
 The bindings are generated using [sn-bindgen](https://github.com/indoorvivants/sn-bindgen).
 
@@ -63,8 +63,8 @@ This will gradually become unnecessary as the dependencies get published.
 
 ### Working on Backend
 
-**Important – see [Forks](#forks) section above.
-**
+**Important – see [Forks](#forks) section above.**
+
 1. Install NGINX Unit: https://unit.nginx.org/installation/
 2. Install LLVM: https://releases.llvm.org/
 3. Set `LLVM_BIN` env variable to the location of `bin` folder in LLVM installation
