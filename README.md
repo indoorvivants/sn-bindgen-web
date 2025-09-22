@@ -1,6 +1,6 @@
 ## Web app to generate Scala 3 Native bindings for C
 
-Try it on **https://sn-bindgen-web.fly.dev**
+Try it on **https://sn-bindgen-web.indoorvivants.com**
 
 <img width="2432" height="1636" alt="CleanShot 2025-09-18 at 12 14 56@2x" src="https://github.com/user-attachments/assets/5b5d56a8-ac76-4ecc-828e-5b7267412e20" />
 
