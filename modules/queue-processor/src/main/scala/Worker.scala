@@ -43,7 +43,7 @@ class Worker private (
                   )
               )
 
-              (unprocessed /*++ stolen*/ ).attempt
+              (unprocessed ++ stolen).attempt
                 .collect { case Right(jid) => jid }
                 .evalMap(q.offer)
 
@@ -196,4 +196,3 @@ object Worker:
   end driverInit
 
 end Worker
-
