@@ -12,10 +12,6 @@
       "version>=": "1.5.2"
     },
     {
-      "name": "sqlite3",
-      "version>=": "3.39.2"
-    },
-    {
       "name": "openssl",
       "version>=": "3.0.5"
     },

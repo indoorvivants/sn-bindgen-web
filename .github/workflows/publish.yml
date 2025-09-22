@@ -68,12 +68,3 @@ jobs:
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
       
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-
-      - name: Deploy to Fly.io
-        run: |
-          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.push.outputs.imageid}}
-          docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.push.outputs.imageid}} sn-bindgen-web:latest
-          flyctl deploy -i sn-bindgen-web:latest --local-only
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
