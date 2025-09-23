@@ -9,7 +9,7 @@
 target
 *.o
 
-**/target/**
+**/target
 project/project
 project/metals.sbt
 build/**
@@ -19,4 +19,5 @@ build
 fly.toml
 out
 build
-node_modules
+**/node_modules
+**/dist
