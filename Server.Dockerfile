@@ -48,16 +48,18 @@ RUN curl -Lo llvm.sh https://apt.llvm.org/llvm.sh && \
 ENV LLVM_BIN=/usr/lib/llvm-17/bin
 RUN sbt httpServer/buildBinaryRelease buildWebappRelease
 
-FROM ubuntu:focal
+FROM ubuntu:jammy
 
 WORKDIR /workdir
+
+RUN apt update && apt install -y nginx
 
 COPY --from=dev /workdir/out/release/bindgen-web-http-server /app/web
 COPY --from=dev /workdir/out/release/frontend /app/static/
 
-COPY modules/nginx/nginx.conf /etc/nginx/nginx.conf
+COPY modules/nginx/nginx.conf /etc/nginx/sites-available/default
 COPY modules/nginx/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
-EXPOSE 8080
+EXPOSE 80
 
-CMD [ "/usr/local/lib/docker-entrypoint.sh" ]
+CMD [ "/usr/local/bin/docker-entrypoint.sh" ]
