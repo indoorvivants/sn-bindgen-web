@@ -42,6 +42,10 @@ COPY modules/bindings/src modules/bindings/src
 COPY modules/http-server/src modules/http-server/src
 COPY modules/protocols/src modules/protocols/src
 COPY modules/frontend modules/frontend
+RUN curl -Lo llvm.sh https://apt.llvm.org/llvm.sh && \
+    chmod +x llvm.sh && \
+    ./llvm.sh 17
+ENV LLVM_BIN=/usr/lib/llvm-17/bin
 RUN sbt httpServer/buildBinaryRelease buildWebappRelease
 
 FROM ubuntu:focal
