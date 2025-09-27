@@ -77,6 +77,8 @@ COPY --from=dev */lib/x86_64-linux-gnu/liblzma.so.* /lib/x86_64-linux-gnu/
 COPY --from=dev */lib/x86_64-linux-gnu/libmd.so.* /lib/x86_64-linux-gnu/
 COPY --from=dev */lib/x86_64-linux-gnu/libicudata.so.* /lib/x86_64-linux-gnu/
 
+COPY --from=dev /usr/lib/llvm-17/bin/clang /usr/lib/llvm-17/bin/
+
 ENV LLVM_BIN=/usr/lib/llvm-17/bin
 
 EXPOSE 8081
