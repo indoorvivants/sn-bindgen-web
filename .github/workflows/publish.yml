@@ -14,8 +14,6 @@ env:
   REGISTRY: ghcr.io
   REGISTRY_LOGIN: ${{ github.actor }}
   REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
-  SERVER_IMAGE_NAME: indoorvivants/sn-bindgen-web-server
-  WORKER_IMAGE_NAME: indoorvivants/sn-bindgen-web-worker
 
 jobs:
   docker_build:
@@ -24,9 +22,9 @@ jobs:
       matrix:
         os: ["ubuntu-22.04", "ubuntu-22.04-arm"]
         include:
-          - image_name: ${{ env.SERVER_IMAGE_NAME }}
+          - image_name: indoorvivants/sn-bindgen-web-server
             dockerfile: Server.Dockerfile
-          - image_name: ${{ env.WORKER_IMAGE_NAME }}
+          - image_name: indoorvivants/sn-bindgen-web-worker
             dockerfile: Worker.Dockerfile
     runs-on: ${{ matrix.os }}
     # Sets the permissions granted to the `GITHUB_TOKEN` for the actions in this job.
@@ -107,10 +105,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - dockerfile: Dockerfile.server
-            image_name: ${{ env.SERVER_IMAGE_NAME }}
-          - dockerfile: Dockerfile.worker
-            image_name: ${{ env.WORKER_IMAGE_NAME }}
+          - dockerfile: Server.Dockerfile
+            image_name: indoorvivants/sn-bindgen-web-server
+          - dockerfile: Worker.Dockerfile
+            image_name: indoorvivants/sn-bindgen-web-worker
     env:
       IMAGE_NAME: ${{ matrix.image_name  }}
     if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
