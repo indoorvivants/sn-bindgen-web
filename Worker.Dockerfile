@@ -40,7 +40,7 @@ COPY modules/queue-processor/src modules/queue-processor/src
 COPY modules/protocols/src modules/protocols/src
 RUN sbt queueProcessor/buildBinaryRelease
 
-FROM ubuntu:focal
+FROM ubuntu:jammy
 
 WORKDIR /workdir
 

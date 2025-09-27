@@ -20,12 +20,19 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: ["ubuntu-22.04", "ubuntu-22.04-arm"]
         include:
           - image_name: indoorvivants/sn-bindgen-web-server
             dockerfile: Server.Dockerfile
+            os: ubuntu-22.04
           - image_name: indoorvivants/sn-bindgen-web-worker
             dockerfile: Worker.Dockerfile
+            os: ubuntu-22.04
+          - image_name: indoorvivants/sn-bindgen-web-server
+            dockerfile: Server.Dockerfile
+            os: ubuntu-22.04-arm
+          - image_name: indoorvivants/sn-bindgen-web-worker
+            dockerfile: Worker.Dockerfile
+            os: ubuntu-22.04-arm
     runs-on: ${{ matrix.os }}
     # Sets the permissions granted to the `GITHUB_TOKEN` for the actions in this job.
     permissions:
