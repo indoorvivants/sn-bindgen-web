@@ -83,4 +83,4 @@ ENV LLVM_BIN=/usr/lib/llvm-17/bin
 
 EXPOSE 8081
 
-ENTRYPOINT [ "/app/worker", "--port", "8081" ]
+ENTRYPOINT [ "/app/worker", "--port", "8081", "--host", "0.0.0.0" ]
