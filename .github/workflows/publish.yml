@@ -12,10 +12,10 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
-  DOCKERFILE: ./Dockerfile
   REGISTRY_LOGIN: ${{ github.actor }}
   REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+  SERVER_IMAGE_NAME: indoorvivants/sn-bindgen-web-server
+  WORKER_IMAGE_NAME: indoorvivants/sn-bindgen-web-worker
 
 jobs:
   docker_build:
@@ -23,6 +23,11 @@ jobs:
       fail-fast: true
       matrix:
         os: ["ubuntu-22.04", "ubuntu-22.04-arm"]
+        include:
+          - image_name: ${{ env.SERVER_IMAGE_NAME }}
+            dockerfile: Server.Dockerfile
+          - image_name: ${{ env.WORKER_IMAGE_NAME }}
+            dockerfile: Worker.Dockerfile
     runs-on: ${{ matrix.os }}
     # Sets the permissions granted to the `GITHUB_TOKEN` for the actions in this job.
     permissions:
@@ -30,7 +35,9 @@ jobs:
       packages: write
       attestations: write
       id-token: write
-      #
+    env:
+      IMAGE_NAME: ${{ matrix.image_name }}
+      DOCKERFILE: ${{ matrix.dockerfile }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -84,7 +91,7 @@ jobs:
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
-          name: digests-${{ matrix.os }}
+          name: digests-${{ matrix.os }}-${{ matrix.dockerfile }}
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
@@ -97,12 +104,21 @@ jobs:
       attestations: write
       id-token: write
     needs: [docker_build]
+    strategy:
+      matrix:
+        include:
+          - dockerfile: Dockerfile.server
+            image_name: ${{ env.SERVER_IMAGE_NAME }}
+          - dockerfile: Dockerfile.worker
+            image_name: ${{ env.WORKER_IMAGE_NAME }}
+    env:
+      IMAGE_NAME: ${{ matrix.image_name  }}
     if: github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main')
     steps:
       - name: Download digests
         uses: actions/download-artifact@v4
         with:
-          pattern: digests-*
+          pattern: digests-*-${{ matrix.dockerfile }}
           path: /tmp/digests
           merge-multiple: true
 

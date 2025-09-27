@@ -198,25 +198,24 @@ class StoreImpl(db: Resource[IO, Session[IO]]) extends Store:
         )
       }
 
-  override def getOrdering(): IO[Map[JobId.Type, Int]] =
-    ???
-    // db.stream(
-    //   sql"""
-    //      |select
-    //      |  id, row_number() over (order by state_date)
-    //      |from
-    //      |  bindings
-    //      |where
-    //      |  state in ('added');
-    //      """.stripMargin.query(
-    //     (C.jobId, integer.asDecoder.map(_.toInt)).tupled
-    //   ),
-    //   (),
-    //   1024
-    // ).compile
-    //   .toVector
-    //   .map(_.toMap)
-
+  override def getOrdering() =
+    db.use(
+      _.stream(
+        sql"""
+         |select
+         |  id, (row_number() over (order by state_date))::int4
+         |from
+         |  bindings
+         |where
+         |  state in ('added');
+         """.stripMargin.query(
+          C.jobId.product(int4)
+        ),
+        skunk.Void,
+        1024
+      ).compile.toVector
+        .map(_.toMap)
+    )
   override def getNoncompleteSpec(id: JobId): IO[Option[BindingSpec]] =
     db.use(
       _.option(
@@ -368,11 +367,14 @@ object Store:
           user = postgres.user,
           database = postgres.database,
           password = postgres.password,
-          ssl = if postgres.ssl then ConnectionConfig.SSL.Trusted else ConnectionConfig.SSL.None
+          ssl =
+            if postgres.ssl then ConnectionConfig.SSL.Trusted
+            else ConnectionConfig.SSL.None
         ),
         defaultSchema = "public"
       )
       .runMigration
+  end migrate
 
   def open(postgres: PgCredentials, skunkConfig: SkunkConfig)(using
       Tracer[IO]

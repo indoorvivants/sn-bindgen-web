@@ -6,16 +6,49 @@ import cats.effect.*
 import cats.effect.std.*
 import cats.syntax.all.*
 import org.http4s.*
-import org.http4s.dsl.io.*
 import smithy4s.http4s.SimpleRestJsonBuilder
 
 import scala.concurrent.duration.*
 
-enum SubmissionResult:
-  case Ok(id: JobId)
-  case Failed(msg: String)
+import com.comcast.ip4s.*
+import org.http4s.ember.server.EmberServerBuilder
+import decline_derive.CommandApplication
 
-object app extends snunit.Http4sApp:
+object BindgenWebWorker extends IOApp:
+  case class CLI(host: Option[String], port: Option[String])
+      derives CommandApplication
+
+  override def run(args: List[String]): IO[ExitCode] =
+    val (host, port) =
+      val cli = CommandApplication.parseOrExit[CLI](args, sys.env)
+      val port = cli.port
+        .flatMap(port =>
+          Port.fromString(port).orElse(sys.error(s"Invalid port $port"))
+        )
+        .getOrElse(port"8081")
+
+      val host = cli.host
+        .flatMap(host =>
+          Host.fromString(host).orElse(sys.error(s"Invalid host $host"))
+        )
+        .getOrElse(host"localhost")
+
+      (host, port)
+
+    end val
+
+    routes
+      .flatMap: r =>
+        EmberServerBuilder
+          .default[IO]
+          .withPort(port)
+          .withHost(host)
+          .withHttpApp(r)
+          .build
+          .evalTap(srv => Log.info(s"Worker started on ${srv.baseUri}"))
+      .useForever
+  end run
+
   def handleErrors(routes: HttpRoutes[IO]) =
     routes.orNotFound.onError { exc =>
       Kleisli(request =>
@@ -28,21 +61,6 @@ object app extends snunit.Http4sApp:
       .bounded[IO, (BindingSpec, Deferred[IO, SubmissionResult])](1024)
       .toResource
     val store = Store.open()
-
-    // val store = Env[IO].get("DB_PATH").toResource.flatMap {
-    //   case None =>
-    //     Store
-    //       .open(":memory:")
-    //       .evalTap(_ =>
-    //         Log.warn(
-    //           "environment variable DB_PATH is not set, Sqlite database will be in-memory only"
-    //         )
-    //       )
-    //   case Some(value) =>
-    //     Store
-    //       .open(value)
-    //       .evalTap(_ => Log.info(s"Opened database in $value"))
-    // }
 
     val tempPath =
       Env[IO]
@@ -57,12 +75,12 @@ object app extends snunit.Http4sApp:
         .map(_.map(fs2.io.file.Path(_)))
         .toResource
 
-    val jobIdIssuer = IO.ref(Map.empty[JobId, Int]).toResource
+    val jobOrdering = IO.ref(Map.empty[JobId, Int]).toResource
 
     val config = RuntimeConfig.fromEnv.toResource
 
-    (queue, store, jobIdIssuer, tempPath, config).parTupled.flatMap {
-      (queue, store, issuer, tempPath, config) =>
+    (queue, store, jobOrdering, tempPath, config).parTupled
+      .flatMap { (queue, store, issuer, tempPath, config) =>
         Worker
           .create(
             store,
@@ -70,13 +88,14 @@ object app extends snunit.Http4sApp:
             config
           )
           .flatMap(_.process) *>
-        submitter(queue, store).compile.drain.background *>
-          //   orderingRefresh(issuer, store).compile.drain.background *>
+          submitter(queue, store).compile.drain.background *>
+          orderingRefresh(issuer, store).compile.drain.background *>
           SimpleRestJsonBuilder
             .routes(JobServiceImpl(queue, issuer, store))
             .resource
             .map(handleErrors)
-    }.onError(err => Log.error("Failed to startup", err).toResource)
+      }
+      .onError(err => Log.error("Failed to startup", err).toResource)
   end routes
 
   def submitter(
@@ -121,4 +140,4 @@ object app extends snunit.Http4sApp:
       }
       .evalMap(ref.set)
       .meteredStartImmediately(5.seconds)
-end app
+end BindgenWebWorker

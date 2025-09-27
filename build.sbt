@@ -34,6 +34,8 @@ val V = new {
   val dumbo = "0.6.0-9-f0f2e0f-SNAPSHOT"
 
   val smithy4sFetch = "0.0.4"
+
+  val declineDerive = "0.3.1"
 }
 
 val isScala3 = Seq(VirtualAxis.scalaABIVersion(V.Scala))
@@ -109,17 +111,17 @@ lazy val httpServer =
     .nativePlatform(Seq(V.Scala))
     .settings(
       buildBinaryConfig := buildBinaryConfig.value
-        .withName("bindgen-web-http-server")
-        .addDestinationDir((ThisBuild / baseDirectory).value / "out" / "unit"),
+        .withName("bindgen-web-http-server"),
       resolvers += Resolver.sonatypeCentralSnapshots,
-      libraryDependencies += "com.github.lolgab" %%% "snunit-http4s0.23" % V.snunit,
+      libraryDependencies += "com.indoorvivants" %%% "decline-derive" % V.declineDerive,
       libraryDependencies += "com.github.lolgab" %%% "scala-native-crypto" % V.snCrypto,
       libraryDependencies += "org.http4s" %%% "http4s-dsl"          % V.http4s,
       libraryDependencies += "org.http4s" %%% "http4s-ember-client" % V.http4s,
+      libraryDependencies += "org.http4s" %%% "http4s-ember-server" % V.http4s,
       libraryDependencies += "com.outr"   %%% "scribe-cats"         % V.scribe,
-      nativeConfig ~= { _.withIncrementalCompilation(true) },
+      nativeLink / nativeConfig ~= { _.withIncrementalCompilation(true) },
       scalacOptions += "-Wunused:all",
-      scalacOptions += "-P:scalanative:genStaticForwardersForNonTopLevelObjects",
+      // scalacOptions += "-P:scalanative:genStaticForwardersForNonTopLevelObjects",
       vcpkgSettings,
       remoteCache
     )
@@ -168,21 +170,24 @@ lazy val queueProcessor =
       vcpkgSettings,
       bindgenBinary := file(".no"),
       buildBinaryConfig := buildBinaryConfig.value
-        .withName("bindgen-web-queue-processor")
-        .addDestinationDir((ThisBuild / baseDirectory).value / "out" / "unit"),
+        .withName("bindgen-web-queue-processor"),
       resolvers += Resolver.sonatypeCentralSnapshots,
+      libraryDependencies += "com.indoorvivants" %%% "decline-derive" % V.declineDerive,
       libraryDependencies += "com.indoorvivants" %%% "bindgen"      % V.bindgen,
       libraryDependencies += "io.circe"          %%% "circe-parser" % V.circe,
       libraryDependencies += "com.indoorvivants" %%% "opaque-newtypes" % V.opaqueNewtypes, // SBT
-      libraryDependencies += "com.github.lolgab" %%% "snunit-http4s0.23" % V.snunit,
       libraryDependencies += "com.github.lolgab" %%% "scala-native-crypto" % V.snCrypto,
-      libraryDependencies += "com.outr"     %%% "scribe-cats" % V.scribe,
-      libraryDependencies += "org.http4s"   %%% "http4s-dsl"  % V.http4s,
-      libraryDependencies += "org.tpolecat" %%% "skunk-core"  % V.skunk,
-      libraryDependencies += "dev.rolang"   %%% "dumbo"       % V.dumbo,
+      libraryDependencies += "org.http4s" %%% "http4s-ember-server" % V.http4s,
+      libraryDependencies += "com.outr"   %%% "scribe-cats"         % V.scribe,
+      libraryDependencies += "org.http4s" %%% "http4s-dsl"          % V.http4s,
+      libraryDependencies += "org.tpolecat" %%% "skunk-core" % V.skunk,
+      libraryDependencies += "dev.rolang"   %%% "dumbo"      % V.dumbo,
       (Compile / compile) := ((Compile / compile) dependsOn (Compile / copyResources)).value,
       nativeConfig ~= {
         _.withIncrementalCompilation(true).withEmbedResources(true)
+      },
+      nativeLinkReleaseFast / nativeConfig ~= {
+        _.withEmbedResources(true)
       },
       nativeConfig := usesLibClang(nativeConfig.value, sLog.value),
       scalacOptions += "-Wunused:all"
@@ -206,17 +211,8 @@ ThisBuild / buildApp := {
   val processor = (queueProcessor.native(V.Scala) / buildBinaryDebug).value
   val frontend  = buildWebapp.value
 
-  val dest     = (ThisBuild / baseDirectory).value / "out" / "unit" / "debug"
-  val statedir = dest / "statedir"
-
-  IO.createDirectory(statedir)
-  IO.copyFile(
-    (ThisBuild / baseDirectory).value / "conf.json",
-    statedir / "conf.json"
-  )
-
+  val dest     = (ThisBuild / baseDirectory).value / "out" / "debug"
   dest
-
 }
 
 val buildBackend = taskKey[File]("")
@@ -243,22 +239,14 @@ ThisBuild / buildAppRelease := {
   val processor = (queueProcessor.native(V.Scala) / buildBinaryRelease).value
   val frontend  = buildWebappRelease.value
 
-  val dest     = (ThisBuild / baseDirectory).value / "out" / "unit" / "release"
-  val statedir = dest / "statedir"
-  IO.createDirectory(statedir)
-
-  IO.copyFile(
-    (ThisBuild / baseDirectory).value / "conf.json",
-    statedir / "conf.json"
-  )
-
+  val dest     = (ThisBuild / baseDirectory).value / "out"  / "release"
   dest
 
 }
 
 lazy val buildWebapp = taskKey[File]("")
 ThisBuild / buildWebapp := {
-  val dest       = (ThisBuild / baseDirectory).value / "out" / "unit" / "debug"
+  val dest = (ThisBuild / baseDirectory).value / "out" / "debug" / "frontend"
   val webappRoot = (ThisBuild / baseDirectory).value / "modules" / "frontend"
 
   import scala.sys.process.*
@@ -273,20 +261,16 @@ ThisBuild / buildWebapp := {
     "Command [npm run build] did not finish successfully"
   )
 
-  println(dest)
+  IO.delete(dest)
+  IO.createDirectory(dest)
+  IO.copyDirectory(webappRoot / "dist", dest)
 
-  val staticDest = dest / "static"
-
-  IO.delete(staticDest)
-  IO.createDirectory(staticDest)
-  IO.copyDirectory(webappRoot / "dist", staticDest)
-
-  staticDest
+  dest
 }
 
 lazy val buildWebappRelease = taskKey[File]("")
 ThisBuild / buildWebappRelease := {
-  val dest = (ThisBuild / baseDirectory).value / "out" / "unit" / "release"
+  val dest = (ThisBuild / baseDirectory).value / "out" / "release" / "frontend"
   val webappRoot = (ThisBuild / baseDirectory).value / "modules" / "frontend"
 
   import scala.sys.process.*
@@ -301,13 +285,10 @@ ThisBuild / buildWebappRelease := {
     "Command [npm run build] did not finish successfully"
   )
 
-  val staticDest = dest / "static"
+  IO.delete(dest)
+  IO.copyDirectory(webappRoot / "dist", dest)
 
-  IO.delete(staticDest)
-  IO.createDirectory(staticDest)
-  IO.copyDirectory(webappRoot / "dist", staticDest)
-
-  staticDest
+  dest
 }
 
 import scala.scalanative.build.NativeConfig
