@@ -19,6 +19,8 @@ class JobServiceImpl(
 
   override def getStatus(id: JobId): IO[GetStatusOutput] =
     store.getState(id).flatMap {
+      case None =>
+        GetStatusOutput(BindingStatus.notFound(NotFound())).pure[IO]
       case Some(State.Completed) =>
         GetStatusOutput(
           BindingStatus.CompletedCase(Completed())

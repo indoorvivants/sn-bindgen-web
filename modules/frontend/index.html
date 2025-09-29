@@ -1,34 +1,51 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+        <link
+            rel="stylesheet"
+            href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/stackoverflow-light.min.css"
+        />
+        <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/scala.min.js"></script>
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.45.0/codemirror.min.css"
+        />
+        <title>Scala 3 Native bindings generator</title>
+    </head>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/stackoverflow-light.min.css">
-  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
-  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/scala.min.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.45.0/codemirror.min.css">
-  <title>Scala 3 Native bindings generator</title>
-</head>
-
-<body>
-  <div class="title-container">
-    <h1 class="page-title">Scala 3 Native bindings generator</h1>
-    <div>
-      <p class="intro">This webapp uses <a href="https://sn-bindgen.indoorvivants.com" target="_blank">sn-bindgen</a> to
-        generate idiomatic
-        Scala 3
-        Native bindings
-        to C code. The <a href="https://github.com/indoorvivants/sn-bindgen-web">app itself</a> is powered by <a
-          href="https://scala-native.org/en/stable/">Scala Native</a> on the backend and <a
-          href="https://scala-js.org">Scala.js</a> on the frontend</p>
-    </div>
-  </div>
-  <div id="appContainer"></div>
-  <script src="/src/main.js" type="module"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.45.0/codemirror.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.45.0/mode/clike/clike.js"></script>
-</body>
-
+    <body>
+        <div class="title-container">
+            <h1 class="page-title">
+                <a href="/">Scala 3 Native bindings generator</a>
+            </h1>
+            <div>
+                <p class="intro">
+                    This webapp uses
+                    <a
+                        href="https://sn-bindgen.indoorvivants.com"
+                        target="_blank"
+                        >sn-bindgen</a
+                    >
+                    to generate idiomatic Scala 3 Native bindings to C code. The
+                    <a href="https://github.com/indoorvivants/sn-bindgen-web"
+                        >app itself</a
+                    >
+                    is powered by
+                    <a href="https://scala-native.org/en/stable/"
+                        >Scala Native</a
+                    >
+                    on the backend and
+                    <a href="https://scala-js.org">Scala.js</a> on the frontend
+                </p>
+            </div>
+        </div>
+        <div id="appContainer"></div>
+        <script src="/src/main.js" type="module"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.45.0/codemirror.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.45.0/mode/clike/clike.js"></script>
+    </body>
 </html>

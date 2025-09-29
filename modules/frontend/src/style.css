@@ -6,13 +6,30 @@ div.container {
     padding-right: 1rem;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem
+    gap: 0.5rem;
 }
 
+h1.page-title a {
+    color: #fff;
+    text-decoration: none;
+}
+
+h1.page-title a:hover {
+    text-decoration: underline;
+}
 
 body {
     background-color: rgb(5, 81, 77);
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    font-family:
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Oxygen,
+        Ubuntu,
+        Cantarell,
+        sans-serif;
 }
 
 div.title-container {
@@ -26,8 +43,8 @@ div.title-container {
     justify-content: flex-start;
 }
 
-div.title-container>* {
-    flex: 1
+div.title-container > * {
+    flex: 1;
 }
 
 p.intro {
@@ -75,12 +92,10 @@ pre code.static-code-block {
     background-color: #f5f5f5;
     border-radius: 0.5rem;
     overflow-x: scroll;
-
 }
 
 form.binding-form button.submit-button {
-
-    background-color: #007BFF;
+    background-color: #007bff;
     color: white;
 
     border: none;
@@ -91,7 +106,7 @@ form.binding-form button.submit-button {
 
 form.binding-form input[type="text"],
 form.binding-form textarea {
-    border: 1px solid #CCC;
+    border: 1px solid #ccc;
     padding: 0.5rem;
     border-radius: 0.25rem;
     font-size: 1.5rem;
@@ -100,25 +115,25 @@ form.binding-form textarea {
 }
 
 .warn-message {
-    background-color: #FFF3CD;
-    border: 2px solid #FFEEBA;
+    background-color: #fff3cd;
+    border: 2px solid #ffeeba;
     padding: 0.6rem;
     color: #856404;
     border-radius: 0.25rem;
 }
 
 .info-message {
-    background-color: #D1E7DD;
-    border: 2px solid #A3CFBB;
+    background-color: #d1e7dd;
+    border: 2px solid #a3cfbb;
     padding: 0.6rem;
-    color: #0F5132;
+    color: #0f5132;
 
     border-radius: 0.25rem;
 }
 
 .error-message {
-    background-color: #F8D7DA;
-    border: 2px solid #F5C2C7;
+    background-color: #f8d7da;
+    border: 2px solid #f5c2c7;
     padding: 0.6rem;
     color: #842029;
     border-radius: 0.25rem;
@@ -138,7 +153,6 @@ h2.section-header {
     font-weight: bold;
 }
 
-
 h3.subtitle {
     font-size: 1.5rem;
     margin: 1.5rem 0 1rem 0;
@@ -152,7 +166,7 @@ div.side-by-side {
     width: 100%;
 }
 
-div.side-by-side>* {
+div.side-by-side > * {
     flex: 1;
     max-width: 50%;
 }
@@ -195,10 +209,9 @@ div.code-block-header h2 {
 
 div.code-block-header a.copy-button {
     font-size: 1.75rem;
-    color: #007BFF;
+    color: #007bff;
     text-decoration: none;
     cursor: pointer;
-
 }
 
 ul.recent-bindings {

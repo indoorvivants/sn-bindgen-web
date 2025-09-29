@@ -135,10 +135,15 @@ def renderBindingId(
     child <-- idSignal.flatMapSwitch { id =>
       api
         .signal(_.users.getStatus(id).`then`(_.status))
+        // .composeChanges(_.throttle(500))
         .flatMapSwitch {
-          case None => Signal.fromValue(i("gimme a minute"))
+          case None =>
+            Signal.fromValue(message(MsgType.Info, "Please wait.."))
           case Some(value) =>
             value match
+              case NotFoundCase(_) =>
+                Signal.fromValue(message(MsgType.Error, "Binding not found"))
+
               case ProcessingCase(processing) =>
                 Signal.fromValue {
                   processing.remaining match
