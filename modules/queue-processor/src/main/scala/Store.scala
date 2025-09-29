@@ -157,7 +157,7 @@ class StoreImpl(db: Resource[IO, Session[IO]]) extends Store:
         _.stream(
           sql"""
         | update leases set worker_id = ${C.workerId} where binding_id
-        |  in (select binding_id from leases where ($timestamptz - checked_in_at > interval '$int4' seconds) limit $int4)
+        |  in (select binding_id from leases where ($timestamptz - checked_in_at > interval '$int4 seconds') limit $int4)
         |  returning binding_id
         """.stripMargin.query(C.jobId),
           (workerId, inst, staleness.toSeconds.toInt, limit),

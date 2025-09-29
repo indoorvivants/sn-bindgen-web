@@ -35,13 +35,19 @@ class Worker private (
                 .createLeases(id, config.leaseLimit)
                 .evalTap(jobId => Log.info(s"Worker $id is leasing job $jobId"))
 
-              val stolen = fs2.Stream.evalSeq(
-                store
-                  .workSteal(id, config.workStealLimit, config.jobStaleness)
-                  .flatTap(jobId =>
-                    Log.info(s"Worker $id is stealing jobs $jobId")
-                  )
-              )
+              val stolen = fs2.Stream
+                .evalSeq(
+                  store
+                    .workSteal(id, config.workStealLimit, config.jobStaleness)
+                    .flatTap(jobIds =>
+                      Log
+                        .info(s"Worker $id is stealing jobs $jobIds")
+                        .whenA(jobIds.nonEmpty)
+                    )
+                )
+                .onError(err =>
+                  fs2.Stream.eval(Log.error("Failed to steal a job", err))
+                )
 
               (unprocessed ++ stolen).attempt
                 .collect { case Right(jid) => jid }
