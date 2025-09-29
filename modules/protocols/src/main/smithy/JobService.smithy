@@ -2,7 +2,6 @@ $version: "2"
 namespace bindgen.web.internal.jobs
 
 use alloy#simpleRestJson
-use bindgen.web.domain#Status
 use bindgen.web.domain#JobId
 use bindgen.web.domain#BindingSpec
 use bindgen.web.domain#GeneratedBinding
