@@ -20,8 +20,6 @@ Try it on **https://sn-bindgen-web.indoorvivants.com**
 
 ### Architecture
 
-The entire service is deployed as an [NGINX Unit](https://unit.nginx.org/) application, with two processes (see [conf.json](conf.json) for Unit configuration):
-
 1. `web` – processes incoming HTTP requests from frontend, and internally communicates with the worker process, scheduling and retrieving bindings:
   - Code is in [./modules/http-server](./modules/http-server)
   - SBT project is `httpServer`
@@ -37,8 +35,7 @@ Both the external and internal APIs are generated using [Smithy4s](https://disne
 - Specs are in [./modules/protocols/src/main/smithy](./modules/protocols/src/main/smithy)
 - SBT projects are `protocolsJS` and `protocolsNative`, to serve the frontend and backend respectively.
 
-
-The frontend is built into an optimised static site and is served by NGINX Unit using the built-in file server.
+The frontend is built into an optimised static site and is served by NGINX.
 
   - Code is in [./modules/frontend](./modules/frontend)
   - SBT project is `frontend`
@@ -48,7 +45,7 @@ The bindings are stored in a Postgres database, with schema broken into [individ
 
 ### Libraries
 
-This app is a testing bed for [Cats Effect](https://typelevel.org/cats-effect/) ecosystem running on [Scala Native](https://scala-native.org). The HTTP layer is provided by [http4s](https://http4s.org/), NGINX Unit interaction is provided by [snunit](https://github.com/lolgab/snunit), database access is via [Skunk](https://typelevel.org/skunk) with [Dumbo](https://github.com/rolang/dumbo) providing migrations, background processing is done using [fs2](https://fs2.io/), the API layer is generated using [Smithy4s](https://disneystreaming.github.io/smithy4s/), and we use [Scribe](https://github.com/outr/scribe) for logging.
+This app is a testing bed for [Cats Effect](https://typelevel.org/cats-effect/) ecosystem running on [Scala Native](https://scala-native.org). The HTTP layer is provided by [http4s](https://http4s.org/), database access is via [Skunk](https://typelevel.org/skunk) with [Dumbo](https://github.com/rolang/dumbo) providing migrations, background processing is done using [fs2](https://fs2.io/), the API layer is generated using [Smithy4s](https://disneystreaming.github.io/smithy4s/), and we use [Scribe](https://github.com/outr/scribe) for logging.
 
 Frontend is entirely [Scala.js](https://scala-js.org), we use Smithy4s definitions with a [smithy4s-fetch](https://github.com/neandertech/smithy4s-fetch) client based on browser [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) – this provides a ~40% reduction in the frontend bundle size. Main UI library is [Laminar](https://laminar.dev/), with [Waypoint](https://github.com/raquo/waypoint) providing the routing for [SPA](https://en.wikipedia.org/wiki/Single-page_application).
 
@@ -65,13 +62,12 @@ This will gradually become unnecessary as the dependencies get published.
 
 **Important – see [Forks](#forks) section above.**
 
-1. Install NGINX Unit: https://unit.nginx.org/installation/
-2. Install LLVM: https://releases.llvm.org/
-3. Set `LLVM_BIN` env variable to the location of `bin` folder in LLVM installation
+1. Install LLVM: https://releases.llvm.org/
+2. Set `LLVM_BIN` env variable to the location of `bin` folder in LLVM installation
     - e.g. `/opt/homebrew/opt/llvm@19/bin` on MacOS with LLVM 19 installed via Homebrew
     - e.g. /usr/lib/llvm-19/bin on Ubuntu with LLVM 19 installed via apt 
-4. Install native dependencies by running `sbt vcpkgInstall` - this will install [vcpkg](https://vcpkg.io/) and then libraries used by the backend
-5. Run `sbt devServer/reStart`
+3. Install native dependencies by running `sbt vcpkgInstall` - this will install [vcpkg](https://vcpkg.io/) and then libraries used by the backend
+4. Run `sbt '~devServer/reStart all'`
 
    **Warning: first run will be very slow. Subsequent ones will be somewhat slow.**
 
