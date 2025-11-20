@@ -1,8 +1,5 @@
 FROM keynmol/sn-vcpkg:latest as dev
 
-ARG unit_version=1.34.1
-ENV UNIT_VERSION=${unit_version}
-
 # Install all native dependencies
 RUN apt-get update && apt-get install -y curl build-essential libpcre2-dev && \
     apt install -y lsb-release wget software-properties-common gnupg

@@ -16,4 +16,6 @@ addSbtPlugin("io.spray"         % "sbt-revolver" % "0.10.0")
 libraryDependencies += "com.indoorvivants.detective" %% "platform" % "0.0.2"
 libraryDependencies += "com.indoorvivants"           %% "yank"     % "0.0.1"
 
+addSbtPlugin("com.eed3si9n" % "sbt-buildinfo" % "0.13.1")
+
 resolvers += Resolver.sonatypeCentralSnapshots

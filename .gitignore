@@ -28,3 +28,5 @@ out
 dist
 
 data
+
+.DS_Store

@@ -1,6 +1,9 @@
 procs:
+  frontend:
+    shell: "sbtn '~frontend/fastLinkJS'"
+    autorestart: true
   backend:
-    shell: "sbt '~;devServer/reStart;frontend/fastLinkJS'"
+    shell: "sbtn '~devServer/reStart all'"
     autorestart: true
   vite: 
     shell: "npm run dev"

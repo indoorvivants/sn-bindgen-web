@@ -5,8 +5,6 @@ import org.scalajs.linker.interface.ModuleSplitStyle
 val V = new {
   val Scala = "3.7.3"
 
-  val snunit = "0.10.4-1-4585f3-SNAPSHOT"
-
   val snCrypto = "0.1.0"
 
   val http4s = "0.23.30-161-f5b9629-SNAPSHOT"
@@ -107,19 +105,21 @@ lazy val httpServer =
     .in(file("modules/http-server"))
     .dependsOn(protocols)
     .defaultAxes((isScala3 ++ isNative)*)
-    .enablePlugins(ScalaNativePlugin, VcpkgNativePlugin, NativeBinaryPlugin)
+    .enablePlugins(ScalaNativePlugin, VcpkgNativePlugin, NativeBinaryPlugin, BuildInfoPlugin)
     .nativePlatform(Seq(V.Scala))
+    .settings(configurePlatform())
     .settings(
       buildBinaryConfig := buildBinaryConfig.value
         .withName("bindgen-web-http-server"),
       resolvers += Resolver.sonatypeCentralSnapshots,
+      buildInfoKeys := Seq[BuildInfoKey]("bindgenVersion" -> V.bindgen),
       libraryDependencies += "com.indoorvivants" %%% "decline-derive" % V.declineDerive,
       libraryDependencies += "com.github.lolgab" %%% "scala-native-crypto" % V.snCrypto,
       libraryDependencies += "org.http4s" %%% "http4s-dsl"          % V.http4s,
       libraryDependencies += "org.http4s" %%% "http4s-ember-client" % V.http4s,
       libraryDependencies += "org.http4s" %%% "http4s-ember-server" % V.http4s,
       libraryDependencies += "com.outr"   %%% "scribe-cats"         % V.scribe,
-      nativeLink / nativeConfig ~= { _.withIncrementalCompilation(true) },
+      nativeConfig ~= { _.withIncrementalCompilation(true).withLinkingOptions(_ ++ Seq("-arch", "arm64")) },
       scalacOptions += "-Wunused:all",
       // scalacOptions += "-P:scalanative:genStaticForwardersForNonTopLevelObjects",
       vcpkgSettings,
@@ -192,6 +192,7 @@ lazy val queueProcessor =
       nativeConfig := usesLibClang(nativeConfig.value, sLog.value),
       scalacOptions += "-Wunused:all"
     )
+    .settings(configurePlatform())
 
 lazy val vcpkgSettings = Seq(
   vcpkgDependencies := VcpkgDependencies
@@ -213,24 +214,6 @@ ThisBuild / buildApp := {
 
   val dest     = (ThisBuild / baseDirectory).value / "out" / "debug"
   dest
-}
-
-val buildBackend = taskKey[File]("")
-ThisBuild / buildBackend := {
-  val web       = (httpServer.native(V.Scala) / buildBinaryDebug).value
-  val processor = (queueProcessor.native(V.Scala) / buildBinaryDebug).value
-
-  val dest     = (ThisBuild / baseDirectory).value / "out" / "unit" / "debug"
-  val statedir = dest / "statedir"
-  IO.createDirectory(statedir)
-
-  IO.copyFile(
-    (ThisBuild / baseDirectory).value / "conf.json",
-    statedir / "conf.json"
-  )
-
-  dest
-
 }
 
 val buildAppRelease = taskKey[File]("")
@@ -399,24 +382,6 @@ concurrentRestrictions in Global ++= Seq(
   Tags.limit(ScalaJSTags.Link, 1)
 )
 
-def UNITD_LOCAL_COMMAND =
-  "unitd --statedir statedir --log /dev/stderr --no-daemon --control 127.0.0.1:9000"
-
-lazy val runServer = taskKey[Unit]("")
-runServer := {
-  val dest = buildApp.value
-
-  import scala.sys.process.*
-
-  val proc = Process(
-    UNITD_LOCAL_COMMAND,
-    cwd = dest,
-    "WORKER_HOST" -> "http://localhost:8081"
-  )
-
-  proc.!
-}
-
 lazy val devServer = project
   .in(file("modules/dev-server"))
   .enablePlugins(RevolverPlugin)
@@ -424,12 +389,39 @@ lazy val devServer = project
     fork         := true,
     scalaVersion := V.Scala,
     envVars ++= Map(
-      "SERVER_BINARY" -> (ThisBuild / buildBackend).value.toString,
-      "UNITD_COMMAND" -> UNITD_LOCAL_COMMAND,
-      "SERVER_CWD" -> ((ThisBuild / baseDirectory).value / "out" / "unit" / "debug").toString,
+      "HTTP_SERVER_BINARY" -> (httpServer.native(V.Scala) / buildBinaryDebug).value.file.toString,
+      "WORKER_BINARY" -> (queueProcessor.native(V.Scala) / buildBinaryDebug).value.file.toString,
       "WORKER_HOST" -> "http://localhost:8081",
       "LLVM_BIN" -> sys.env
         .getOrElse("LLVM_BIN", "/opt/homebrew/opt/llvm@17/bin"),
       "DATABASE_URL" -> "postgres://sn_bindgen_web@localhost:5432/sn_bindgen_web?sslmode=disable"
     )
   )
+
+
+def configurePlatform(
+    rename: String => String = identity
+) =
+  Seq(
+    nativeConfig := {
+      import com.indoorvivants.detective.*
+      import Platform.OS.*
+      val conf =
+        nativeConfig.value
+      val arch64 =
+        if (
+          Platform.os == MacOS && Platform.arch == Platform.Arch.Arm && Platform.bits == Platform.Bits.x64
+        )
+          List("-arch", "arm64")
+        else Nil
+
+      conf
+        .withLinkingOptions(
+          conf.linkingOptions ++ arch64
+        )
+        .withCompileOptions(
+          conf.compileOptions ++ arch64
+        )
+    }
+  )
+
