@@ -98,6 +98,19 @@ def renderMainPage(
       cls := "side-by-side",
       form(
         cls := "binding-form",
+        span(
+          "Bindgen version: ",
+          child <-- api
+            .stream(_.users.serverInfo())
+            .map(_.bindgenVersion)
+            .map: version =>
+              a(
+                href := s"https://github.com/indoorvivants/sn-bindgen/releases/tag/v$version",
+                b(
+                  version
+                )
+              )
+        ),
         onSubmit.preventDefault.mapTo(
           BindingSpec(
             HeaderCode(headerCodeVar.now()),

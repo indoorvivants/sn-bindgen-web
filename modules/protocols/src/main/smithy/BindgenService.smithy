@@ -16,7 +16,7 @@ use bindgen.web.domain#BindingStatus
 @simpleRestJson
 service BindgenService {
   version: "1.0.0",
-  operations: [Submit, GetStatus, GetBinding, Health]
+  operations: [Submit, GetStatus, GetBinding, Health, ServerInfo]
 }
 
 @http(method: "POST", uri: "/api/submit", code: 200)
@@ -58,6 +58,17 @@ operation Health {
     workerStatus: String
   } 
 }
+
+
+@readonly
+@http(method: "GET", uri: "/api/serverinfo", code: 200)
+operation ServerInfo {
+  output := {
+    @required
+    bindgenVersion: String
+  } 
+}
+
 
 @readonly
 @http(method: "GET", uri: "/api/binding/{id}", code: 200)

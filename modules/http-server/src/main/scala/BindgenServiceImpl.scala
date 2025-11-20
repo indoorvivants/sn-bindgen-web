@@ -19,12 +19,19 @@ class BindgenServiceImpl(workerClient: JobService[IO])
 
   override def getBinding(id: JobId): IO[GeneratedBinding] =
     workerClient.getBinding(id)
+
   override def getStatus(id: JobId): IO[GetStatusOutput] =
     workerClient.getStatus(id).map(s => GetStatusOutput(s.status))
+
   override def submit(
       spec: BindingSpec
   ): IO[SubmitOutput] =
     workerClient.submit(spec).map(so => SubmitOutput(so.id))
+
+  override def serverInfo(): IO[ServerInfoOutput] =
+    IO.pure(
+      ServerInfoOutput(bindgenVersion = buildinfo.BuildInfo.bindgenVersion)
+    )
 end BindgenServiceImpl
 
 object BindgenServiceImpl:
