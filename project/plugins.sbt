@@ -1,4 +1,4 @@
-addSbtPlugin("org.scala-native"        % "sbt-scala-native" % "0.5.9")
+addSbtPlugin("org.scala-native"        % "sbt-scala-native" % "0.5.8")
 addSbtPlugin("com.indoorvivants.vcpkg" % "sbt-vcpkg-native" % "0.0.21")
 addSbtPlugin(
   "com.disneystreaming.smithy4s" % "smithy4s-sbt-codegen" % "0.18.42-8-43c7e948-SNAPSHOT"
