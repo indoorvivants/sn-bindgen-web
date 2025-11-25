@@ -1,10 +1,10 @@
-addSbtPlugin("org.scala-native"        % "sbt-scala-native" % "0.5.8")
+addSbtPlugin("org.scala-native"        % "sbt-scala-native" % "0.5.9")
 addSbtPlugin("com.indoorvivants.vcpkg" % "sbt-vcpkg-native" % "0.0.21")
 addSbtPlugin(
   "com.disneystreaming.smithy4s" % "smithy4s-sbt-codegen" % "0.18.42-8-43c7e948-SNAPSHOT"
 )
 addSbtPlugin(
-  "com.indoorvivants" % "bindgen-sbt-plugin" % "0.2.4"
+  "com.indoorvivants" % "bindgen-sbt-plugin" % "0.3.1"
 )
 addSbtPlugin("com.eed3si9n"  % "sbt-projectmatrix" % "0.9.1")
 addSbtPlugin("org.scalameta" % "sbt-scalafmt"      % "2.4.6")

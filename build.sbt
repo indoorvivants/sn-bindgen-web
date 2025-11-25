@@ -3,7 +3,7 @@ import scala.scalanative.build.Mode
 import org.scalajs.linker.interface.ModuleSplitStyle
 
 val V = new {
-  val Scala = "3.7.3"
+  val Scala = "3.7.4"
 
   val snCrypto = "0.1.0"
 
@@ -27,7 +27,7 @@ val V = new {
 
   val http4sDom = "0.2.11"
 
-  val bindgen = "0.2.4"
+  val bindgen = "0.3.1"
 
   val dumbo = "0.6.0-9-f0f2e0f-SNAPSHOT"
 
