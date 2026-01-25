@@ -3,7 +3,7 @@ import scala.scalanative.build.Mode
 import org.scalajs.linker.interface.ModuleSplitStyle
 
 val V = new {
-  val Scala = "3.7.3"
+  val Scala = "3.8.2-RC1"
 
   val snCrypto = "0.1.0"
 
