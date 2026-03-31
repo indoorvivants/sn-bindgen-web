@@ -425,3 +425,30 @@ a.link-on-background:hover {
     border-bottom-color: var(--teal-600);
     text-decoration: none;
 }
+
+/* ── Footer ───────────────────────────────────────── */
+
+div.footer {
+    width: 100%;
+    background: var(--teal-800);
+    color: var(--teal-200);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 400;
+    text-align: center;
+    padding: 1.25rem 2rem;
+    border-top: 2px solid var(--teal-600);
+    margin-top: 2rem;
+}
+
+div.footer a {
+    color: var(--teal-300);
+    text-decoration: none;
+    border-bottom: 1px solid var(--teal-600);
+    padding-bottom: 1px;
+}
+
+div.footer a:hover {
+    color: #ffffff;
+    border-bottom-color: var(--teal-400);
+}
