@@ -12,10 +12,6 @@ RUN apt-get update && apt-get install -y curl build-essential libpcre2-dev && \
 
 WORKDIR /workdir
 
-# pre-download SBT
-COPY project/build.properties project/
-RUN sbt --sbt-create version
-
 # install vcpkg dependencies
 RUN sn-vcpkg bootstrap
 COPY vcpkg.json .
@@ -28,6 +24,10 @@ COPY forks forks
 ENV LC_CTYPE=en_US.UTF-8
 ENV LANG=en_US.UTF-8
 RUN forks/publish.sh
+
+# pre-download SBT
+COPY project/build.properties project/
+RUN sbt --sbt-create version
 
 # build app
 ENV CI=true
