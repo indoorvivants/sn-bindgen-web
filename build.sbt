@@ -3,19 +3,19 @@ import scala.scalanative.build.Mode
 import org.scalajs.linker.interface.ModuleSplitStyle
 
 val V = new {
-  val Scala = "3.7.3"
+  val Scala = "3.8.3"
 
   val snCrypto = "0.1.0"
 
-  val http4s = "0.23.30-161-f5b9629-SNAPSHOT"
+  val http4s = "0.23.33-127-59b3be6-SNAPSHOT"
 
-  val fs2 = "3.13.0-M7"
+  val fs2 = "3.13.0"
 
-  val scribe = "3.17.0"
+  val scribe = "3.18.0"
 
   val opaqueNewtypes = "0.1.0"
 
-  val skunk = "1.0-7f46fa8-SNAPSHOT"
+  val skunk = "1.0-1e45307-SNAPSHOT"
 
   val macroTaskExecutor = "1.1.1"
 
@@ -25,15 +25,13 @@ val V = new {
 
   val waypoint = "8.0.0"
 
-  val http4sDom = "0.2.11"
+  val bindgen = "0.4.2"
 
-  val bindgen = "0.3.1"
-
-  val dumbo = "0.6.0-9-f0f2e0f-SNAPSHOT"
+  val dumbo = "0.8.1-8-8ea0c95-SNAPSHOT"
 
   val smithy4sFetch = "0.0.4"
 
-  val declineDerive = "0.3.1"
+  val declineDerive = "0.3.2"
 }
 
 val isScala3 = Seq(VirtualAxis.scalaABIVersion(V.Scala))

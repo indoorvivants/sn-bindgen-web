@@ -1,0 +1,15 @@
+[submodule "forks/smithy4s"]
+	path = forks/smithy4s
+	url = git@github.com:keynmol/smithy4s.git
+[submodule "forks/skunk"]
+	path = forks/skunk
+	url = git@github.com:keynmol/skunk.git
+[submodule "forks/scribe"]
+	path = forks/scribe
+	url = git@github.com:keynmol/scribe.git
+[submodule "forks/dumbo"]
+	path = forks/dumbo
+	url = git@github.com:keynmol/dumbo.git
+[submodule "forks/http4s"]
+	path = forks/http4s
+	url = git@github.com:iRevive/http4s.git

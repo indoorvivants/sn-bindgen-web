@@ -53,7 +53,7 @@ The bindings are generated using [sn-bindgen](https://github.com/indoorvivants/s
 
 ### Forks
 
-**IMPORTANT**: as of September 18th, the project works with a lot of unpublished versions, so you HAVE TO run the [script](./publish-forks.sh) to publish locally the versions required by this app.
+**IMPORTANT**: as of September 18th, the project works with a lot of unpublished versions, so you HAVE TO run the [script](forks/publish.sh) to publish locally the versions required by this app.
 
 This will gradually become unnecessary as the dependencies get published.
 

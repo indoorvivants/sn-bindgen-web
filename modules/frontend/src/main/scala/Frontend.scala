@@ -20,7 +20,12 @@ end myApp
   renderOnDomContentLoaded(
     dom.document.getElementById("appContainer"),
     div(
-      child <-- app.signal
+      child <-- app.signal,
+      div(
+        cls := "footer",
+        "© ",
+        a(href := "https://indoorvivants.com", "Anton Sviridov")
+      )
     )
   )
 end main

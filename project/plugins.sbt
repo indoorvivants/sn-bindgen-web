@@ -1,15 +1,15 @@
-addSbtPlugin("org.scala-native"        % "sbt-scala-native" % "0.5.8")
+addSbtPlugin("org.scala-native"        % "sbt-scala-native" % "0.5.10")
 addSbtPlugin("com.indoorvivants.vcpkg" % "sbt-vcpkg-native" % "0.0.21")
 addSbtPlugin(
-  "com.disneystreaming.smithy4s" % "smithy4s-sbt-codegen" % "0.18.42-8-43c7e948-SNAPSHOT"
+  "com.disneystreaming.smithy4s" % "smithy4s-sbt-codegen" % "0.18.50-19-1ea0728c-SNAPSHOT"
 )
 addSbtPlugin(
-  "com.indoorvivants" % "bindgen-sbt-plugin" % "0.3.1"
+  "com.indoorvivants" % "bindgen-sbt-plugin" % "0.4.2"
 )
 addSbtPlugin("com.eed3si9n"  % "sbt-projectmatrix" % "0.9.1")
 addSbtPlugin("org.scalameta" % "sbt-scalafmt"      % "2.4.6")
 
-addSbtPlugin("org.scala-js"     % "sbt-scalajs"  % "1.20.1")
+addSbtPlugin("org.scala-js"     % "sbt-scalajs"  % "1.21.0")
 addSbtPlugin("com.timushev.sbt" % "sbt-rewarn"   % "0.1.3")
 addSbtPlugin("io.spray"         % "sbt-revolver" % "0.10.0")
 

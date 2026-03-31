@@ -69,9 +69,7 @@ def renderMainPage(
 
     } --> pollingState.writer
 
-  div(
-    updater,
-    cls := "container",
+  val recentBindingsBlock = div(
     p(
       cls := "recent-bindings-title",
       "Recent bindings",
@@ -93,132 +91,141 @@ def renderMainPage(
           )
         )
       )
-    ),
+    )
+  )
+
+  div(
+    updater,
+    cls := "container",
     div(
       cls := "side-by-side",
-      form(
-        cls := "binding-form",
-        span(
-          "Bindgen version: ",
-          child <-- api
-            .stream(_.users.serverInfo())
-            .map(_.bindgenVersion)
-            .map: version =>
-              a(
-                href := s"https://github.com/indoorvivants/sn-bindgen/releases/tag/v$version",
-                b(
-                  version
-                )
-              )
-        ),
-        onSubmit.preventDefault.mapTo(
-          BindingSpec(
-            HeaderCode(headerCodeVar.now()),
-            PackageName(packageNameVar.now())
-          )
-        ) --> { code =>
-          api.futureAttempt(_.users.submit(code)).foreach {
-            case Right(value) =>
-              pollingState.set(State.Polling(value.id, None))
-            case Left(fatal: SubmissionFailed) =>
-              pollingState
-                .set(State.Fatal(fatal.reason.getOrElse("Server error 😿")))
-            case Left(err: ValidationError) =>
-              pollingState.set(State.Fixable(err.message))
-            case Left(other) =>
-              pollingState.set(
-                State
-                  .Fatal(
-                    "❌ Something is seriously broken:" + other.getMessage()
-                  )
-              )
-
-          }
-        },
-        child <-- pollingState.signal
-          .debugSpy(org.scalajs.dom.console.log(_))
-          .map {
-            case State.Fatal(msg) =>
-              message(MsgType.Error, msg)
-            case State.Fixable(msg) =>
-              message(MsgType.Warn, msg)
-            case State.Polling(_, None) =>
-              message(MsgType.Info, "Submitted, waiting to hear back...")
-            case State.Polling(_, Some(ProcessingCase(p: Processing))) =>
-              p.remaining match
-                case None =>
-                  message(
-                    MsgType.Info,
-                    "Binding is in the queue, please hold.."
-                  )
-                case Some(value) =>
-                  message(
-                    MsgType.Info,
-                    s"Binding is in the queue ($value ahead of it), please hold.."
-                  )
-            case State.Polling(id, Some(CompletedCase(_: Completed))) =>
-              readyBindingState.set(Some(id))
-              message(
-                MsgType.Info,
-                span(
-                  "Your binding is ready. ",
-                  a(
-                    href := "#",
-                    cls  := "font-bold",
-                    "Permalink",
-                    navigateTo(Page.BindingPage(id))
+      div(
+        cls := "form-container",
+        form(
+          cls := "binding-form",
+          span(
+            "Bindgen version: ",
+            child <-- api
+              .stream(_.users.serverInfo())
+              .map(_.bindgenVersion)
+              .map: version =>
+                a(
+                  href := s"https://github.com/indoorvivants/sn-bindgen/releases/tag/v$version",
+                  b(
+                    version
                   )
                 )
-              )
-            case State.Polling(_, Some(FailedCase(f: Failed))) =>
-              message(MsgType.Error, renderFailed(f))
+          ),
+          onSubmit.preventDefault.mapTo(
+            BindingSpec(
+              HeaderCode(headerCodeVar.now()),
+              PackageName(packageNameVar.now())
+            )
+          ) --> { code =>
+            api.futureAttempt(_.users.submit(code)).foreach {
+              case Right(value) =>
+                pollingState.set(State.Polling(value.id, None))
+              case Left(fatal: SubmissionFailed) =>
+                pollingState
+                  .set(State.Fatal(fatal.reason.getOrElse("Server error 😿")))
+              case Left(err: ValidationError) =>
+                pollingState.set(State.Fixable(err.message))
+              case Left(other) =>
+                pollingState.set(
+                  State
+                    .Fatal(
+                      "❌ Something is seriously broken:" + other.getMessage()
+                    )
+                )
 
-            case State.Polling(_, Some(NotFoundCase(_))) =>
-              message(MsgType.Error, "Binding doesn't exist")
-
-            case State.None => emptyNode
+            }
           },
-        titleBlock("Package name"),
-        input(
-          cls := "w-full m-4 p-4 text-xl",
-          tpe := "text",
-          onInput.mapToValue --> packageNameVar,
-          value <-- packageNameVar.signal,
-          placeholder := "my_bindings"
-        ),
-        titleBlock("C header code"),
-        div(
-          cls := "m-4 w-full items-center",
-          textArea(
-            cls := "w-full",
-            onMountCallback: el =>
-              val editor = CodeMirror
-                .fromTextArea(
-                  el.thisNode.ref,
-                  js.Dictionary(
-                    "value"       -> headerCodeVar.now(),
-                    "lineNumbers" -> true,
-                    "mode"        -> "text/x-csrc"
+          child <-- pollingState.signal
+            .debugSpy(org.scalajs.dom.console.log(_))
+            .map {
+              case State.Fatal(msg) =>
+                message(MsgType.Error, msg)
+              case State.Fixable(msg) =>
+                message(MsgType.Warn, msg)
+              case State.Polling(_, None) =>
+                message(MsgType.Info, "Submitted, waiting to hear back...")
+              case State.Polling(_, Some(ProcessingCase(p: Processing))) =>
+                p.remaining match
+                  case None =>
+                    message(
+                      MsgType.Info,
+                      "Binding is in the queue, please hold.."
+                    )
+                  case Some(value) =>
+                    message(
+                      MsgType.Info,
+                      s"Binding is in the queue ($value ahead of it), please hold.."
+                    )
+              case State.Polling(id, Some(CompletedCase(_: Completed))) =>
+                readyBindingState.set(Some(id))
+                message(
+                  MsgType.Info,
+                  span(
+                    "Your binding is ready. ",
+                    a(
+                      href := "#",
+                      cls  := "font-bold",
+                      "Permalink",
+                      navigateTo(Page.BindingPage(id))
+                    )
                   )
                 )
-              editor
-                .on(
-                  "change",
-                  value => headerCodeVar.toObserver.onNext(value.getValue())
-                )
-              editor
-                .getDoc()
-                .setValue(headerCodeVar.now())
-            ,
-            onInput.mapToValue --> headerCodeVar,
-            value <-- headerCodeVar.signal
+              case State.Polling(_, Some(FailedCase(f: Failed))) =>
+                message(MsgType.Error, renderFailed(f))
+
+              case State.Polling(_, Some(NotFoundCase(_))) =>
+                message(MsgType.Error, "Binding doesn't exist")
+
+              case State.None => emptyNode
+            },
+          titleBlock("Package name"),
+          input(
+            cls := "w-full m-4 p-4 text-xl",
+            tpe := "text",
+            onInput.mapToValue --> packageNameVar,
+            value <-- packageNameVar.signal,
+            placeholder := "my_bindings"
+          ),
+          titleBlock("C header code"),
+          div(
+            cls := "m-4 w-full items-center",
+            textArea(
+              cls := "w-full",
+              onMountCallback: el =>
+                val editor = CodeMirror
+                  .fromTextArea(
+                    el.thisNode.ref,
+                    js.Dictionary(
+                      "value"       -> headerCodeVar.now(),
+                      "lineNumbers" -> true,
+                      "mode"        -> "text/x-csrc"
+                    )
+                  )
+                editor
+                  .on(
+                    "change",
+                    value => headerCodeVar.toObserver.onNext(value.getValue())
+                  )
+                editor
+                  .getDoc()
+                  .setValue(headerCodeVar.now())
+              ,
+              onInput.mapToValue --> headerCodeVar,
+              value <-- headerCodeVar.signal
+            )
+          ),
+          button(
+            tpe := "submit",
+            "Generate",
+            cls := "submit-button"
           )
         ),
-        button(
-          tpe := "submit",
-          "Generate",
-          cls := "submit-button"
-        )
+        recentBindingsBlock
       ),
       div(
         cls := "w-1/2 items-center",
