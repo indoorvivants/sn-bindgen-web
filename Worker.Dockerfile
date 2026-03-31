@@ -22,6 +22,8 @@ COPY vcpkg.json .
 ENV VCPKG_FORCE_SYSTEM_BINARIES=1
 RUN sn-vcpkg install -v --manifest vcpkg.json
 
+COPY .git .git
+COPY .gitmodules .gitmodules
 COPY forks forks
 ENV LC_CTYPE=en_US.UTF-8
 ENV LANG=en_US.UTF-8
