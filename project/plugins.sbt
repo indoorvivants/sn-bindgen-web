@@ -4,7 +4,7 @@ addSbtPlugin(
   "com.disneystreaming.smithy4s" % "smithy4s-sbt-codegen" % "0.18.50-19-1ea0728c-SNAPSHOT"
 )
 addSbtPlugin(
-  "com.indoorvivants" % "bindgen-sbt-plugin" % "0.4.2"
+  "com.indoorvivants" % "bindgen-sbt-plugin" % "0.4.3"
 )
 addSbtPlugin("com.eed3si9n"  % "sbt-projectmatrix" % "0.9.1")
 addSbtPlugin("org.scalameta" % "sbt-scalafmt"      % "2.4.6")

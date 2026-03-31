@@ -25,7 +25,7 @@ val V = new {
 
   val waypoint = "8.0.0"
 
-  val bindgen = "0.4.2"
+  val bindgen = "0.4.3"
 
   val dumbo = "0.8.1-8-8ea0c95-SNAPSHOT"
 
@@ -103,7 +103,12 @@ lazy val httpServer =
     .in(file("modules/http-server"))
     .dependsOn(protocols)
     .defaultAxes((isScala3 ++ isNative)*)
-    .enablePlugins(ScalaNativePlugin, VcpkgNativePlugin, NativeBinaryPlugin, BuildInfoPlugin)
+    .enablePlugins(
+      ScalaNativePlugin,
+      VcpkgNativePlugin,
+      NativeBinaryPlugin,
+      BuildInfoPlugin
+    )
     .nativePlatform(Seq(V.Scala))
     .settings(configurePlatform())
     .settings(
@@ -117,7 +122,10 @@ lazy val httpServer =
       libraryDependencies += "org.http4s" %%% "http4s-ember-client" % V.http4s,
       libraryDependencies += "org.http4s" %%% "http4s-ember-server" % V.http4s,
       libraryDependencies += "com.outr"   %%% "scribe-cats"         % V.scribe,
-      nativeConfig ~= { _.withIncrementalCompilation(true).withLinkingOptions(_ ++ Seq("-arch", "arm64")) },
+      nativeConfig ~= {
+        _.withIncrementalCompilation(true)
+          .withLinkingOptions(_ ++ Seq("-arch", "arm64"))
+      },
       scalacOptions += "-Wunused:all",
       // scalacOptions += "-P:scalanative:genStaticForwardersForNonTopLevelObjects",
       vcpkgSettings,
@@ -210,7 +218,7 @@ ThisBuild / buildApp := {
   val processor = (queueProcessor.native(V.Scala) / buildBinaryDebug).value
   val frontend  = buildWebapp.value
 
-  val dest     = (ThisBuild / baseDirectory).value / "out" / "debug"
+  val dest = (ThisBuild / baseDirectory).value / "out" / "debug"
   dest
 }
 
@@ -220,7 +228,7 @@ ThisBuild / buildAppRelease := {
   val processor = (queueProcessor.native(V.Scala) / buildBinaryRelease).value
   val frontend  = buildWebappRelease.value
 
-  val dest     = (ThisBuild / baseDirectory).value / "out"  / "release"
+  val dest = (ThisBuild / baseDirectory).value / "out" / "release"
   dest
 
 }
@@ -387,15 +395,18 @@ lazy val devServer = project
     fork         := true,
     scalaVersion := V.Scala,
     envVars ++= Map(
-      "HTTP_SERVER_BINARY" -> (httpServer.native(V.Scala) / buildBinaryDebug).value.file.toString,
-      "WORKER_BINARY" -> (queueProcessor.native(V.Scala) / buildBinaryDebug).value.file.toString,
+      "HTTP_SERVER_BINARY" -> (httpServer.native(
+        V.Scala
+      ) / buildBinaryDebug).value.file.toString,
+      "WORKER_BINARY" -> (queueProcessor.native(
+        V.Scala
+      ) / buildBinaryDebug).value.file.toString,
       "WORKER_HOST" -> "http://localhost:8081",
       "LLVM_BIN" -> sys.env
         .getOrElse("LLVM_BIN", "/opt/homebrew/opt/llvm@17/bin"),
       "DATABASE_URL" -> "postgres://sn_bindgen_web@localhost:5432/sn_bindgen_web?sslmode=disable"
     )
   )
-
 
 def configurePlatform(
     rename: String => String = identity
@@ -422,4 +433,3 @@ def configurePlatform(
         )
     }
   )
-
