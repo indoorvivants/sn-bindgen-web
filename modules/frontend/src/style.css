@@ -11,25 +11,25 @@
     --teal-50:  #f0fdfa;
 
     --surface: #ffffff;
-    --surface-2: #f7fafa;
-    --border: #d1ece9;
-    --border-strong: #a3d4cf;
+    --surface-2: #f7f7f7;
+    --border: #e2e8e8;
+    --border-strong: #b0ccc9;
 
-    --text-primary: #0f2b28;
-    --text-secondary: #3d6b66;
-    --text-muted: #6b9e99;
+    --text-primary: #111827;
+    --text-secondary: #374151;
+    --text-muted: #6b7280;
     --text-on-dark: #e6faf8;
 
-    --accent: var(--teal-400);
-    --accent-hover: var(--teal-300);
+    --accent: var(--teal-600);
+    --accent-hover: var(--teal-700);
 
     --radius-sm: 4px;
     --radius: 8px;
     --radius-lg: 12px;
 
-    --shadow-sm: 0 1px 3px rgba(2, 44, 40, 0.08);
-    --shadow: 0 4px 16px rgba(2, 44, 40, 0.12);
-    --shadow-lg: 0 8px 32px rgba(2, 44, 40, 0.18);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+    --shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
 }
 
 *, *::before, *::after {
@@ -37,10 +37,7 @@
 }
 
 body {
-    background-color: var(--teal-800);
-    background-image:
-        radial-gradient(ellipse 80% 50% at 20% -10%, rgba(45, 212, 191, 0.12) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 40% at 80% 110%, rgba(45, 212, 191, 0.07) 0%, transparent 50%);
+    background-color: #ffffff;
     font-family: 'IBM Plex Sans', system-ui, sans-serif;
     font-weight: 300;
     min-height: 100vh;
@@ -58,7 +55,7 @@ div.title-container {
     margin: 0 auto;
     padding: 2.5rem 2rem 1.5rem;
     align-items: center;
-    border-bottom: 1px solid rgba(45, 212, 191, 0.2);
+    border-bottom: 2px solid var(--teal-400);
 }
 
 div.title-container > * {
@@ -69,56 +66,40 @@ h1.page-title {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 1.75rem;
     font-weight: 600;
-    color: #ffffff;
+    color: var(--text-primary);
     margin: 0;
     line-height: 1.25;
     letter-spacing: -0.02em;
 }
 
 h1.page-title a {
-    color: #ffffff;
+    color: var(--text-primary);
     text-decoration: none;
 }
 
 h1.page-title a:hover {
-    color: var(--teal-300);
+    color: var(--teal-600);
     text-decoration: none;
-}
-
-h1.page-title a::after {
-    content: '';
-    display: block;
-    height: 2px;
-    width: 0;
-    background: var(--teal-400);
-    transition: width 0.3s ease;
-    margin-top: 4px;
-}
-
-h1.page-title a:hover::after {
-    width: 100%;
 }
 
 p.intro {
     font-size: 0.9rem;
     line-height: 1.65;
-    color: var(--text-on-dark);
-    opacity: 0.8;
+    color: var(--text-secondary);
     margin: 0;
 }
 
 p.intro a {
-    color: var(--teal-300);
+    color: var(--teal-600);
     text-decoration: none;
     font-weight: 400;
     font-size: inherit;
-    border-bottom: 1px solid rgba(94, 234, 212, 0.35);
-    transition: border-color 0.2s, color 0.2s;
+    border-bottom: 1px solid var(--teal-400);
 }
 
 p.intro a:hover {
-    color: var(--teal-200);
-    border-bottom-color: var(--teal-300);
+    color: var(--teal-700);
+    border-bottom-color: var(--teal-600);
     text-decoration: none;
 }
 
@@ -140,7 +121,7 @@ p.recent-bindings-title {
     font-weight: 600;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--teal-400);
+    color: var(--teal-600);
     margin: 0 0 0.5rem 0;
 }
 
@@ -160,7 +141,7 @@ ul.recent-bindings li {
 
 ul.recent-bindings li::before {
     content: '›';
-    color: var(--teal-600);
+    color: var(--teal-400);
     margin-right: 0.5rem;
     font-size: 1rem;
     font-family: 'IBM Plex Mono', monospace;
@@ -169,19 +150,17 @@ ul.recent-bindings li::before {
 a.recent-binding-link {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 0.78rem;
-    color: var(--teal-300);
+    color: var(--teal-600);
     text-decoration: none;
-    opacity: 0.75;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 70ch;
-    transition: opacity 0.15s;
 }
 
 a.recent-binding-link:hover {
-    opacity: 1;
-    text-decoration: none;
+    color: var(--teal-700);
+    text-decoration: underline;
 }
 
 /* ── Side-by-side layout ──────────────────────────── */
@@ -266,11 +245,10 @@ form.binding-form input[type="text"] {
     color: var(--text-primary);
     background: transparent;
     outline: none;
-    transition: background 0.15s;
 }
 
 form.binding-form input[type="text"]:focus {
-    background: #f0faf9;
+    background: var(--teal-50);
 }
 
 /* CodeMirror wrapper */
@@ -298,7 +276,7 @@ form.binding-form button.submit-button {
     display: block;
     width: calc(100% - 2.5rem);
     margin: 1rem 1.25rem;
-    background: var(--teal-700);
+    background: var(--teal-600);
     color: #ffffff;
     border: none;
     padding: 0.75rem 1.5rem;
@@ -308,32 +286,34 @@ form.binding-form button.submit-button {
     font-weight: 600;
     letter-spacing: 0.06em;
     cursor: pointer;
-    transition: background 0.2s, transform 0.1s;
 }
 
 form.binding-form button.submit-button:hover {
-    background: var(--teal-600);
+    background: var(--teal-700);
 }
 
 form.binding-form button.submit-button:active {
-    transform: scale(0.99);
+    background: var(--teal-800);
 }
 
 /* Message alerts (inside form — no top border needed) */
 .warn-message,
 .info-message,
 .error-message {
-    margin: 0.75rem 1.25rem;
+    display: inline-block;
+    margin: 0.75rem 0;
     padding: 0.65rem 1rem;
     font-size: 0.85rem;
     line-height: 1.5;
     border-radius: var(--radius-sm);
 }
 
-/* Override the form's default border-top divider for alert elements */
+/* Inside the form: full-width, no top border divider */
 form.binding-form > .warn-message,
 form.binding-form > .info-message,
 form.binding-form > .error-message {
+    display: block;
+    margin: 0.75rem 1.25rem;
     border-top: none !important;
 }
 
@@ -345,9 +325,9 @@ form.binding-form > .error-message {
 }
 
 .info-message {
-    background: #f0fdf9;
-    color: #065f46;
-    border: 1px solid #99f6e4;
+    background: var(--teal-50);
+    color: var(--teal-800);
+    border: 1px solid var(--teal-200);
     border-left: 3px solid var(--teal-400);
 }
 
@@ -366,7 +346,7 @@ h2.section-header {
     font-weight: 600;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--teal-300);
+    color: var(--teal-600);
     margin: 0 0 0.75rem 0;
 }
 
@@ -393,7 +373,6 @@ div.code-block-header a.copy-button {
     color: var(--text-muted);
     text-decoration: none;
     cursor: pointer;
-    transition: color 0.15s;
     line-height: 1;
 }
 
@@ -404,14 +383,21 @@ div.code-block-header a.copy-button:hover {
 pre code.static-code-block {
     display: block;
     padding: 1rem 1.25rem;
-    background: var(--surface);
+    background: var(--surface-2);
     border: 1px solid var(--border);
+    border-left: 3px solid var(--teal-400);
     border-radius: var(--radius);
     overflow-x: auto;
     font-family: 'IBM Plex Mono', monospace;
     font-size: 0.82rem;
     line-height: 1.6;
     color: var(--text-primary);
+}
+
+div.form-container {
+  display:flex;
+  flex-direction: column;
+  gap: 1rem
 }
 
 /* ── Navigation links ─────────────────────────────── */
@@ -422,21 +408,20 @@ div.link-bar {
     align-items: baseline;
     margin: 0 0 1.5rem 0;
     padding-bottom: 1rem;
-    border-bottom: 1px solid rgba(45, 212, 191, 0.2);
+    border-bottom: 1px solid var(--border);
 }
 
 a.link-on-background {
     font-size: 0.85rem;
-    color: var(--teal-300);
+    color: var(--teal-600);
     text-decoration: none;
     font-weight: 400;
-    border-bottom: 1px solid rgba(94, 234, 212, 0.3);
-    transition: color 0.15s, border-color 0.15s;
+    border-bottom: 1px solid var(--teal-400);
     padding-bottom: 1px;
 }
 
 a.link-on-background:hover {
-    color: var(--teal-200);
-    border-bottom-color: var(--teal-300);
+    color: var(--teal-700);
+    border-bottom-color: var(--teal-600);
     text-decoration: none;
 }
