@@ -1,9 +1,9 @@
 *.class
 *.tasty
-.metals
-.bloop
-.bsp
-.sbt
+**/.metals
+**/.bloop
+**/.bsp
+**/.sbt
 *.gch
 .cache
 target

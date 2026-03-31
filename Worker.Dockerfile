@@ -22,10 +22,10 @@ COPY vcpkg.json .
 ENV VCPKG_FORCE_SYSTEM_BINARIES=1
 RUN sn-vcpkg install -v --manifest vcpkg.json
 
-COPY publish-forks.sh .forks/publish-forks.sh
+COPY forks forks
 ENV LC_CTYPE=en_US.UTF-8
 ENV LANG=en_US.UTF-8
-RUN cd .forks && ./publish-forks.sh
+RUN forks/publish.sh
 
 # build app
 ENV CI=true
