@@ -53,10 +53,7 @@ The bindings are generated using [sn-bindgen](https://github.com/indoorvivants/s
 
 ### Forks
 
-**IMPORTANT**: as of September 18th, the project works with a lot of unpublished versions, so you HAVE TO run the [script](forks/publish.sh) to publish locally the versions required by this app.
-
-This will gradually become unnecessary as the dependencies get published.
-
+The only project that needs to be published locally is Dumbo: run `./forks/publish.sh`.
 
 ### Working on Backend
 
@@ -69,7 +66,7 @@ This will gradually become unnecessary as the dependencies get published.
 3. Install native dependencies by running `sbt vcpkgInstall` - this will install [vcpkg](https://vcpkg.io/) and then libraries used by the backend
 4. Run `sbt '~devServer/reStart all'`
 
-   **Warning: first run will be very slow. Subsequent ones will be somewhat slow.**
+   **Warning: first run will be very slow. Subsequent ones will be only somewhat slow.**
 
 6. The web frontend API will be available at http://localhost:8080/api, and the internal worker API will be available on http://localhost:8081
 
@@ -90,12 +87,13 @@ It's using [Scala.js](https://www.scala-js.org/) and [Laminar](https://laminar.d
 
 If you want, you can run [`mprocs`](https://github.com/pvolok/mprocs) tool in the root of the project and you will get backend and frontend running at the same time with auto-reload.
 
-### Building docker container
+### Building docker containers
 
-`docker build . -t sn-bindgen-web`
+Server (frontend and public API): `docker build . -t sn-bindgen-web-server -f Server.Dockerfile`
+Worker (job processing): `docker build . -t sn-bindgen-web-worker -f Worker.Dockerfile`
 
-The docker container is designed to be entirely self-contained, and will install all dependencies from scratch – so it will take a long time.
+The docker containers are designed to be entirely self-contained, and will install all dependencies from scratch – so it will take a long time.
 
 It's designed in a layered fashion to ensure caching of intermediate builds, but it still takes a long time.
 
-We also publish the Docker container built on CI to GHA registry: https://github.com/indoorvivants/sn-bindgen-web/pkgs/container/sn-bindgen-web
+We also publish the Docker containers built on CI to GHA registry: https://github.com/indoorvivants/sn-bindgen-web/packages
