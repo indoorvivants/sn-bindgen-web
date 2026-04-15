@@ -7,27 +7,27 @@ val V = new {
 
   val snCrypto = "0.1.0"
 
-  val http4s = "0.23.33-127-59b3be6-SNAPSHOT"
+  val http4s = "0.23.34"
 
   val fs2 = "3.13.0"
 
-  val scribe = "3.18.0"
+  val scribe = "3.19.0"
 
   val opaqueNewtypes = "0.1.0"
 
-  val skunk = "1.0-1e45307-SNAPSHOT"
+  val skunk = "1.0.0"
 
   val macroTaskExecutor = "1.1.1"
 
   val laminar = "17.2.1"
 
-  val circe = "0.14.14"
+  val circe = "0.14.15"
 
   val waypoint = "8.0.0"
 
   val bindgen = "0.4.3"
 
-  val dumbo = "0.8.1-8-8ea0c95-SNAPSHOT"
+  val dumbo = "0.8.1-9-96d90d5-SNAPSHOT"
 
   val smithy4sFetch = "0.0.4"
 
