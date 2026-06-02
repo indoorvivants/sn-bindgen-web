@@ -9,7 +9,6 @@ Try it on **https://sn-bindgen-web.indoorvivants.com**
 - [Development](#development)
   - [Architecture](#architecture)
   - [Libraries](#libraries)
-  - [Forks](#forks)
   - [Working on Backend](#working-on-backend)
   - [Working on Frontend](#working-on-frontend)
   - [Working with mprocs](#working-with-mprocs)
@@ -51,13 +50,7 @@ Frontend is entirely [Scala.js](https://scala-js.org), we use Smithy4s definitio
 
 The bindings are generated using [sn-bindgen](https://github.com/indoorvivants/sn-bindgen).
 
-### Forks
-
-The only project that needs to be published locally is Dumbo: run `./forks/publish.sh`.
-
 ### Working on Backend
-
-**Important – see [Forks](#forks) section above.**
 
 1. Install LLVM: https://releases.llvm.org/
 2. Set `LLVM_BIN` env variable to the location of `bin` folder in LLVM installation
