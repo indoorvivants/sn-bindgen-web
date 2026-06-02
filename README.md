@@ -59,7 +59,7 @@ The bindings are generated using [sn-bindgen](https://github.com/indoorvivants/s
 3. Install native dependencies by running `sbt vcpkgInstall` - this will install [vcpkg](https://vcpkg.io/) and then libraries used by the backend
 4. Run `sbt '~devServer/reStart all'`
 
-   **Warning: first run will be very slow. Subsequent ones will be somewhat slow.**
+   **Warning: first run will be very slow. Subsequent ones will be only somewhat slow.**
 
 6. The web frontend API will be available at http://localhost:8080/api, and the internal worker API will be available on http://localhost:8081
 
@@ -82,11 +82,11 @@ If you want, you can run [`mprocs`](https://github.com/pvolok/mprocs) tool in th
 
 ### Building docker containers
 
-- Server: `docker build . -t sn-bindgen-web-server -f Server.Dockerfile`
-- Worker: `docker build . -t sn-bindgen-web-server -f Worker.Dockerfile`
+Server (frontend and public API): `docker build . -t sn-bindgen-web-server -f Server.Dockerfile`
+Worker (job processing): `docker build . -t sn-bindgen-web-worker -f Worker.Dockerfile`
 
-The docker container is designed to be entirely self-contained, and will install all dependencies from scratch – so it will take a long time.
+The docker containers are designed to be entirely self-contained, and will install all dependencies from scratch – so it will take a long time.
 
 It's designed in a layered fashion to ensure caching of intermediate builds, but it still takes a long time.
 
-We also publish the Docker container built on CI to GHA registry: https://github.com/orgs/indoorvivants/packages?repo_name=sn-bindgen-web
+We also publish the Docker containers built on CI to GHA registry: https://github.com/indoorvivants/sn-bindgen-web/packages
