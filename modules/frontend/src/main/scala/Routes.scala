@@ -18,7 +18,7 @@ val bindingPageRoute = Route(
 
 val loginRoute = Route.static(Page.Main, root)
 
-val router = new Router[Page](
+object router extends Router[Page](
   routes = List(bindingPageRoute, loginRoute),
   getPageTitle = _ match
     case Page.Main            => "Scala 3 Native bindings generator"
@@ -32,11 +32,6 @@ val router = new Router[Page](
     pageStr match
       case ""              => Page.Main
       case s"binding: $id" => Page.BindingPage(JobId(UUID.fromString(id)))
-)(
-  popStateEvents = windowEvents(
-    _.onPopState
-  ),
-  owner = unsafeWindowOwner
 )
 
 def redirectTo(pg: Page)(using router: Router[Page]) =

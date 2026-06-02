@@ -9,7 +9,6 @@ Try it on **https://sn-bindgen-web.indoorvivants.com**
 - [Development](#development)
   - [Architecture](#architecture)
   - [Libraries](#libraries)
-  - [Forks](#forks)
   - [Working on Backend](#working-on-backend)
   - [Working on Frontend](#working-on-frontend)
   - [Working with mprocs](#working-with-mprocs)
@@ -51,16 +50,7 @@ Frontend is entirely [Scala.js](https://scala-js.org), we use Smithy4s definitio
 
 The bindings are generated using [sn-bindgen](https://github.com/indoorvivants/sn-bindgen).
 
-### Forks
-
-**IMPORTANT**: as of September 18th, the project works with a lot of unpublished versions, so you HAVE TO run the [script](forks/publish.sh) to publish locally the versions required by this app.
-
-This will gradually become unnecessary as the dependencies get published.
-
-
 ### Working on Backend
-
-**Important – see [Forks](#forks) section above.**
 
 1. Install LLVM: https://releases.llvm.org/
 2. Set `LLVM_BIN` env variable to the location of `bin` folder in LLVM installation
@@ -90,12 +80,13 @@ It's using [Scala.js](https://www.scala-js.org/) and [Laminar](https://laminar.d
 
 If you want, you can run [`mprocs`](https://github.com/pvolok/mprocs) tool in the root of the project and you will get backend and frontend running at the same time with auto-reload.
 
-### Building docker container
+### Building docker containers
 
-`docker build . -t sn-bindgen-web`
+- Server: `docker build . -t sn-bindgen-web-server -f Server.Dockerfile`
+- Worker: `docker build . -t sn-bindgen-web-server -f Worker.Dockerfile`
 
 The docker container is designed to be entirely self-contained, and will install all dependencies from scratch – so it will take a long time.
 
 It's designed in a layered fashion to ensure caching of intermediate builds, but it still takes a long time.
 
-We also publish the Docker container built on CI to GHA registry: https://github.com/indoorvivants/sn-bindgen-web/pkgs/container/sn-bindgen-web
+We also publish the Docker container built on CI to GHA registry: https://github.com/orgs/indoorvivants/packages?repo_name=sn-bindgen-web

@@ -3,9 +3,9 @@ import scala.scalanative.build.Mode
 import org.scalajs.linker.interface.ModuleSplitStyle
 
 val V = new {
-  val Scala = "3.8.3"
+  val Scala = "3.8.4"
 
-  val snCrypto = "0.1.0"
+  val snCrypto = "0.3.0"
 
   val http4s = "0.23.34"
 
@@ -23,15 +23,15 @@ val V = new {
 
   val circe = "0.14.15"
 
-  val waypoint = "8.0.0"
+  val waypoint = "9.0.0"
 
-  val bindgen = "0.4.3"
+  val bindgen = "0.4.4"
 
-  val dumbo = "0.8.1-9-96d90d5-SNAPSHOT"
+  val dumbo = "0.10.1"
 
-  val smithy4sFetch = "0.0.4"
+  val smithy4sFetch = "0.0.5"
 
-  val declineDerive = "0.3.2"
+  val declineDerive = "0.3.6"
 }
 
 val isScala3 = Seq(VirtualAxis.scalaABIVersion(V.Scala))
@@ -160,6 +160,7 @@ lazy val bindings =
                 "-I" + configurator.includes("zstd").toString
               )
             )
+            .withNoLocation(true)
         )
       }
     )
