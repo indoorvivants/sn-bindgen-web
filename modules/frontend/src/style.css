@@ -1,35 +1,57 @@
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,600;1,300&display=swap');
 
 :root {
-    --teal-900: #022c28;
-    --teal-800: #044037;
-    --teal-700: #05514d;
-    --teal-600: #0a6e68;
-    --teal-400: #2dd4bf;
-    --teal-300: #a7f3e8;
-    --teal-200: #e0faf6;
-    --teal-50:  #f0fdfa;
+    --indigo-950: #0f0f1a;
+    --indigo-900: #13132b;
+    --indigo-800: #1c1c3a;
+    --indigo-700: #252550;
+    --indigo-600: #3333a0;
+    --indigo-300: #8888d4;
+    --indigo-200: #c4c4f0;
+    --indigo-100: #e8e8fa;
+    --indigo-50:  #f4f4fd;
 
-    --surface: #ffffff;
-    --surface-2: #f7f7f7;
-    --border: #e2e8e8;
-    --border-strong: #b0ccc9;
+    --amber-500: #f59e0b;
+    --amber-400: #fbbf24;
+    --amber-300: #fcd34d;
+    --amber-200: #fde68a;
+    --amber-100: #fef3c7;
+    --amber-50:  #fffbeb;
 
-    --text-primary: #111827;
-    --text-secondary: #374151;
-    --text-muted: #6b7280;
-    --text-on-dark: #e6faf8;
+    --slate-900: #0f172a;
+    --slate-800: #1e293b;
+    --slate-700: #334155;
+    --slate-600: #475569;
+    --slate-400: #94a3b8;
+    --slate-200: #e2e8f0;
+    --slate-100: #f1f5f9;
+    --slate-50:  #f8fafc;
 
-    --accent: var(--teal-600);
-    --accent-hover: var(--teal-700);
+    --surface:   #ffffff;
+    --surface-2: #f8f8fe;
+    --border:    #e2e2f0;
+    --border-strong: #c4c4e8;
+
+    --text-primary:   #1a1a2e;
+    --text-secondary: #2d2d4e;
+    --text-muted:     #6b6b9a;
+    --text-on-dark:   #e8e8fa;
+
+    --accent:       var(--amber-500);
+    --accent-hover: var(--amber-400);
+    --accent-light: var(--amber-100);
+
+    --link:       #4444b8;
+    --link-hover: #3333a0;
+    --link-under: #a0a0d8;
 
     --radius-sm: 4px;
-    --radius: 8px;
+    --radius:    8px;
     --radius-lg: 12px;
 
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
-    --shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
+    --shadow-sm: 0 1px 3px rgba(30, 30, 80, 0.06);
+    --shadow:    0 4px 16px rgba(30, 30, 80, 0.10);
+    --shadow-lg: 0 8px 32px rgba(30, 30, 80, 0.14);
 }
 
 *, *::before, *::after {
@@ -55,11 +77,18 @@ div.title-container {
     margin: 0 auto;
     padding: 2.5rem 2rem 1.5rem;
     align-items: center;
-    border-bottom: 2px solid var(--teal-400);
+    border-bottom: 2px solid var(--amber-400);
+    position: relative;
 }
 
 div.title-container > * {
     flex: unset;
+}
+
+.title-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
 }
 
 h1.page-title {
@@ -78,8 +107,28 @@ h1.page-title a {
 }
 
 h1.page-title a:hover {
-    color: var(--teal-600);
+    color: var(--indigo-600);
     text-decoration: none;
+}
+
+a.github-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--slate-600);
+    text-decoration: none;
+    flex-shrink: 0;
+    transition: color 0.15s ease, transform 0.15s ease;
+    margin-top: 2px;
+}
+
+a.github-link:hover {
+    color: var(--indigo-600);
+    transform: translateY(-1px);
+}
+
+a.github-link svg {
+    display: block;
 }
 
 p.intro {
@@ -90,16 +139,16 @@ p.intro {
 }
 
 p.intro a {
-    color: var(--teal-600);
+    color: var(--link);
     text-decoration: none;
     font-weight: 400;
     font-size: inherit;
-    border-bottom: 1px solid var(--teal-400);
+    border-bottom: 1px solid var(--link-under);
 }
 
 p.intro a:hover {
-    color: var(--teal-700);
-    border-bottom-color: var(--teal-600);
+    color: var(--link-hover);
+    border-bottom-color: var(--link);
     text-decoration: none;
 }
 
@@ -121,7 +170,7 @@ p.recent-bindings-title {
     font-weight: 600;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--teal-600);
+    color: var(--indigo-600);
     margin: 0 0 0.5rem 0;
 }
 
@@ -141,7 +190,7 @@ ul.recent-bindings li {
 
 ul.recent-bindings li::before {
     content: '›';
-    color: var(--teal-400);
+    color: var(--amber-500);
     margin-right: 0.5rem;
     font-size: 1rem;
     font-family: 'IBM Plex Mono', monospace;
@@ -150,7 +199,7 @@ ul.recent-bindings li::before {
 a.recent-binding-link {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 0.78rem;
-    color: var(--teal-600);
+    color: var(--link);
     text-decoration: none;
     white-space: nowrap;
     overflow: hidden;
@@ -159,7 +208,7 @@ a.recent-binding-link {
 }
 
 a.recent-binding-link:hover {
-    color: var(--teal-700);
+    color: var(--link-hover);
     text-decoration: underline;
 }
 
@@ -211,7 +260,7 @@ form.binding-form > span:first-child {
 }
 
 form.binding-form > span:first-child a {
-    color: var(--teal-600);
+    color: var(--indigo-600);
     text-decoration: none;
     font-weight: 600;
 }
@@ -235,20 +284,24 @@ h3.subtitle {
 
 form.binding-form input[type="text"] {
     display: block;
-    border: none;
-    border-bottom: 1px solid var(--border);
-    padding: 0.65rem 1.25rem;
+    border: 1.5px solid var(--border-strong);
+    border-radius: var(--radius);
+    padding: 0.6rem 1rem;
+    margin: 0 1.25rem 0.75rem;
+    width: calc(100% - 2.5rem);
     font-size: 1rem;
     font-family: 'IBM Plex Mono', monospace;
     font-weight: 400;
-    width: 100%;
     color: var(--text-primary);
-    background: transparent;
+    background: var(--surface-2);
     outline: none;
+    transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 
 form.binding-form input[type="text"]:focus {
-    background: var(--teal-50);
+    border-color: var(--indigo-300);
+    background: var(--amber-50);
+    box-shadow: 0 0 0 3px rgba(68, 68, 184, 0.10);
 }
 
 /* CodeMirror wrapper */
@@ -276,8 +329,8 @@ form.binding-form button.submit-button {
     display: block;
     width: calc(100% - 2.5rem);
     margin: 1rem 1.25rem;
-    background: var(--teal-600);
-    color: #ffffff;
+    background: var(--indigo-800);
+    color: var(--amber-300);
     border: none;
     padding: 0.75rem 1.5rem;
     border-radius: var(--radius);
@@ -286,14 +339,15 @@ form.binding-form button.submit-button {
     font-weight: 600;
     letter-spacing: 0.06em;
     cursor: pointer;
+    transition: background 0.15s ease;
 }
 
 form.binding-form button.submit-button:hover {
-    background: var(--teal-700);
+    background: var(--indigo-700);
 }
 
 form.binding-form button.submit-button:active {
-    background: var(--teal-800);
+    background: var(--indigo-900);
 }
 
 /* Message alerts (inside form — no top border needed) */
@@ -318,17 +372,17 @@ form.binding-form > .error-message {
 }
 
 .warn-message {
-    background: #fefce8;
-    color: #854d0e;
-    border: 1px solid #fde68a;
-    border-left: 3px solid #eab308;
+    background: var(--amber-50);
+    color: #7c4a00;
+    border: 1px solid var(--amber-200);
+    border-left: 3px solid var(--amber-500);
 }
 
 .info-message {
-    background: var(--teal-50);
-    color: var(--teal-800);
-    border: 1px solid var(--teal-200);
-    border-left: 3px solid var(--teal-400);
+    background: var(--indigo-50);
+    color: var(--indigo-700);
+    border: 1px solid var(--indigo-200);
+    border-left: 3px solid var(--indigo-300);
 }
 
 .error-message {
@@ -346,7 +400,7 @@ h2.section-header {
     font-weight: 600;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--teal-600);
+    color: var(--indigo-600);
     margin: 0 0 0.75rem 0;
 }
 
@@ -377,7 +431,7 @@ div.code-block-header a.copy-button {
 }
 
 div.code-block-header a.copy-button:hover {
-    color: var(--teal-600);
+    color: var(--indigo-600);
 }
 
 pre code.static-code-block {
@@ -385,7 +439,7 @@ pre code.static-code-block {
     padding: 1rem 1.25rem;
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-left: 3px solid var(--teal-400);
+    border-left: 3px solid var(--amber-400);
     border-radius: var(--radius);
     overflow-x: auto;
     font-family: 'IBM Plex Mono', monospace;
@@ -413,16 +467,16 @@ div.link-bar {
 
 a.link-on-background {
     font-size: 0.85rem;
-    color: var(--teal-600);
+    color: var(--link);
     text-decoration: none;
     font-weight: 400;
-    border-bottom: 1px solid var(--teal-400);
+    border-bottom: 1px solid var(--link-under);
     padding-bottom: 1px;
 }
 
 a.link-on-background:hover {
-    color: var(--teal-700);
-    border-bottom-color: var(--teal-600);
+    color: var(--link-hover);
+    border-bottom-color: var(--link);
     text-decoration: none;
 }
 
@@ -430,25 +484,25 @@ a.link-on-background:hover {
 
 div.footer {
     width: 100%;
-    background: var(--teal-800);
-    color: var(--teal-200);
+    background: var(--indigo-900);
+    color: var(--indigo-200);
     font-family: 'IBM Plex Mono', monospace;
     font-size: 0.8rem;
     font-weight: 400;
     text-align: center;
     padding: 1.25rem 2rem;
-    border-top: 2px solid var(--teal-600);
+    border-top: 2px solid var(--amber-500);
     margin-top: 2rem;
 }
 
 div.footer a {
-    color: var(--teal-300);
+    color: var(--amber-300);
     text-decoration: none;
-    border-bottom: 1px solid var(--teal-600);
+    border-bottom: 1px solid var(--indigo-600);
     padding-bottom: 1px;
 }
 
 div.footer a:hover {
-    color: #ffffff;
-    border-bottom-color: var(--teal-400);
+    color: var(--amber-200);
+    border-bottom-color: var(--amber-400);
 }
