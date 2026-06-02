@@ -2,17 +2,18 @@
 
 Try it on **https://sn-bindgen-web.indoorvivants.com**
 
-<img width="2432" height="1636" alt="CleanShot 2025-09-18 at 12 14 56@2x" src="https://github.com/user-attachments/assets/5b5d56a8-ac76-4ecc-828e-5b7267412e20" />
+<img width="2784" height="1834" alt="CleanShot 2026-06-02 at 10 16 58@2x" src="https://github.com/user-attachments/assets/1d929536-9c94-46e0-a0d6-183cb1c4edbc" />
 
 <!--toc:start-->
 - [Web app to generate Scala 3 Native bindings for C](#web-app-to-generate-scala-3-native-bindings-for-c)
 - [Development](#development)
   - [Architecture](#architecture)
+  - [External dependencies](#external-dependencies)
   - [Libraries](#libraries)
   - [Working on Backend](#working-on-backend)
   - [Working on Frontend](#working-on-frontend)
   - [Working with mprocs](#working-with-mprocs)
-  - [Building docker container](#building-docker-container)
+  - [Building docker containers](#building-docker-containers)
 <!--toc:end-->
 
 ## Development
@@ -40,7 +41,13 @@ The frontend is built into an optimised static site and is served by NGINX.
   - SBT project is `frontend`
   - Useful SBT commands: `frontend/fastLinkJS`, `buildWebapp`
 
-The bindings are stored in a Postgres database, with schema broken into [individual migrations](./modules/queue-processor/src/main/resources/db/migration).
+The bindings are stored in a Postgres database, with schema broken into [individual migrations](./modules/queue-processor/src/main/resources/db/migration). 
+
+### External dependencies
+
+1. LLVM - it's a runtime dependency of sn-bindgen, and therefore needs to be installed on your machine if you want to run this project
+2. NPM & Vite - used for live-reload and bundling of the frontend
+
 
 ### Libraries
 
