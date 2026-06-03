@@ -1,0 +1,39 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: sn_bindgen_web
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    image: ghcr.io/indoorvivants/sn-bindgen-web-server:main
+    ports:
+      - "8080:80"
+    environment:
+      PG_HOST: postgres
+      PG_PORT: 5432
+      PG_USER: postgres
+      PG_DB: sn_bindgen_web
+      PG_PASSWORD: postgres
+      WORKER_HOST: http://worker:8081
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  worker:
+    image: ghcr.io/indoorvivants/sn-bindgen-web-worker:main
+    environment:
+      PG_HOST: postgres
+      PG_PORT: 5432
+      PG_USER: postgres
+      PG_DB: sn_bindgen_web
+      PG_PASSWORD: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy

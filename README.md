@@ -6,40 +6,51 @@ Try it on **https://sn-bindgen-web.indoorvivants.com**
 
 <!--toc:start-->
 - [Web app to generate Scala 3 Native bindings for C](#web-app-to-generate-scala-3-native-bindings-for-c)
+- [Introduction](#introduction)
 - [Development](#development)
   - [Architecture](#architecture)
   - [External dependencies](#external-dependencies)
   - [Libraries](#libraries)
   - [Working on Backend](#working-on-backend)
   - [Working on Frontend](#working-on-frontend)
-  - [Working with mprocs](#working-with-mprocs)
   - [Building docker containers](#building-docker-containers)
 <!--toc:end-->
 
+## Introduction
+
+This web application is both a useful demonstrator for [sn-bindgen](https://sn-bindgen.indoorvivants.com/), a test bed for the Typelevel stack on Scala Native 0.5, and an experimentation ground for structuring full stack applications in Scala Native.
+
+Quickest way to run it locally is to use Docker Compose: `$ docker compose up`, then go to http://localhost:8080.
+
+It uses images published to [GHA registry](https://github.com/indoorvivants/sn-bindgen-web/packages) - those images are published on every commit to main.
+
 ## Development
+
+Most of the commands mentioned here are intended to be run in a single SBT shell – start it once with `sbt` and put commands in there. Do not run commands as individual sbt invocations, life is too short for that.
+
+Shell commands are prefixed with `$`
 
 ### Architecture
 
 1. `web` – processes incoming HTTP requests from frontend, and internally communicates with the worker process, scheduling and retrieving bindings:
   - Code is in [./modules/http-server](./modules/http-server)
   - SBT project is `httpServer`
-  - Useful SBT commands: `httpServer/buildBinaryDebug`
+  - Useful SBT commands: `httpServer/buildBinaryDebug` to build the binary, or `httpServer/reStart` to start it with default port and worker settings.
 
 2. `worker` – exposes an internal HTTP API, and constantly polls the database table for unprocessed bindings. Worker is horizontally scalable and different instances will steal work that has become stale. 
   - Code is in [./modules/queue-processor](./modules/queue-processor)
   - SBT project is `queueProcessor`
-  - Useful SBT commands: `queueProcessor/buildBinaryDebug`
+  - Useful SBT commands: `queueProcessor/buildBinaryDebug` to build the binary, or `queueProcessor/reStart` to start it with default port and postgres settings
+
+3. `frontend` - a single-page application written using Scala.js.
+  - Code is in [./modules/frontend/](./modules/frontend)
+  - SBT project is `frontend`
+  - Useful SBT commands: `frontend/fastLinkJS` (to produce unoptimised bundle, run it on a loop with `~` during development), `buildWebapp` - builds a fully static assets bundle in `out/release/frontend`, `frontend/reStart` will start Vite development server in the background.
 
 Both the external and internal APIs are generated using [Smithy4s](https://disneystreaming.github.io/smithy4s/).
 
 - Specs are in [./modules/protocols/src/main/smithy](./modules/protocols/src/main/smithy)
 - SBT projects are `protocolsJS` and `protocolsNative`, to serve the frontend and backend respectively.
-
-The frontend is built into an optimised static site and is served by NGINX.
-
-  - Code is in [./modules/frontend](./modules/frontend)
-  - SBT project is `frontend`
-  - Useful SBT commands: `frontend/fastLinkJS`, `buildWebapp`
 
 The bindings are stored in a Postgres database, with schema broken into [individual migrations](./modules/queue-processor/src/main/resources/db/migration). 
 
@@ -47,6 +58,9 @@ The bindings are stored in a Postgres database, with schema broken into [individ
 
 1. LLVM - it's a runtime dependency of sn-bindgen, and therefore needs to be installed on your machine if you want to run this project
 2. NPM & Vite - used for live-reload and bundling of the frontend
+3. Postgres – when running the services directly from sbt build, Postgres is assumed to be running on localhost:5432, with `postgres` user and empty password. Default database name is assumed to be `sn_bindgen_web` (it will be auto-migrated on startup). See `PgCredentials.scala` for configuration env variables.
+4. `s2n` - required by http4s, `zstd` - required for in-database code compression. Both of these are installed using bootstrapped `vcpkg` - usually you don't need to do anything.
+5. NGINX (only in docker) - serves the static frontend bundle and proxies api requests to web frontend API
 
 
 ### Libraries
@@ -62,12 +76,10 @@ The bindings are generated using [sn-bindgen](https://github.com/indoorvivants/s
 1. Install LLVM: https://releases.llvm.org/
 2. Set `LLVM_BIN` env variable to the location of `bin` folder in LLVM installation
     - e.g. `/opt/homebrew/opt/llvm@19/bin` on MacOS with LLVM 19 installed via Homebrew
-    - e.g. /usr/lib/llvm-19/bin on Ubuntu with LLVM 19 installed via apt 
-3. Install native dependencies by running `sbt vcpkgInstall` - this will install [vcpkg](https://vcpkg.io/) and then libraries used by the backend
-4. Run `sbt '~devServer/reStart all'`
-
-   **Warning: first run will be very slow. Subsequent ones will be only somewhat slow.**
-
+    - e.g. `/usr/lib/llvm-19/bin` on Ubuntu with LLVM 19 installed via apt 
+3. Install native dependencies by running `vcpkgInstall` - this will install [vcpkg](https://vcpkg.io/) and then libraries used by the backend
+4. Run `httpServer/reStart` - (re)starts the web frontend API in the background
+5. Run `queueProcessor/reStart` - (re)starts the worker API in the background
 6. The web frontend API will be available at http://localhost:8080/api, and the internal worker API will be available on http://localhost:8081
 
 ### Working on Frontend
@@ -75,25 +87,27 @@ The bindings are generated using [sn-bindgen](https://github.com/indoorvivants/s
 The frontend module is set up using [Vite.js](https://vitejs.dev/).
 It's using [Scala.js](https://www.scala-js.org/) and [Laminar](https://laminar.dev/).
 
-- `cd modules/frontend`
-- `npm install`
+- `$ cd modules/frontend && npm install`
+
 - Run the backend (see above), it has to be running on port 8080 (default) 
-  as Vite is configured to proxy the `/api/*` requests to `http://localhost:8080/api/*`. If you used the `devServer/reStart` SBT command, then it's configured correctly already.
-- In a separate SBT shell, run `~frontend/fastLinkJS` - this continuously rebuilds the Scala.js frontend
-- `npm run dev` - will run the Vite server 
+  as Vite is configured to proxy the `/api/*` requests to `http://localhost:8080/api/*`. If you used the `httpServer/reStart` SBT command, then it's configured correctly already.
+
+- Run Vite dev server with `frontend/reStart`
+
+- Run `~frontend/fastLinkJS` - this continuously rebuilds the Scala.js frontend
+
 - Open http://localhost:5173 and you can now edit frontend without restarting the backend, with live reload
-
-### Working with mprocs
-
-If you want, you can run [`mprocs`](https://github.com/pvolok/mprocs) tool in the root of the project and you will get backend and frontend running at the same time with auto-reload.
 
 ### Building docker containers
 
-Server (frontend and public API): `docker build . -t sn-bindgen-web-server -f Server.Dockerfile`
-Worker (job processing): `docker build . -t sn-bindgen-web-worker -f Worker.Dockerfile`
+- Server (frontend and public API): 
+    
+    `$ docker build . -t sn-bindgen-web-server -f Server.Dockerfile`
 
-The docker containers are designed to be entirely self-contained, and will install all dependencies from scratch – so it will take a long time.
+- Worker (job processing): 
 
-It's designed in a layered fashion to ensure caching of intermediate builds, but it still takes a long time.
+    `$ docker build . -t sn-bindgen-web-worker -f Worker.Dockerfile`
+
+The docker containers are designed to be entirely self-contained, and will install all dependencies from scratch – so it will take a long time. It's designed in a layered fashion to ensure caching of intermediate builds but it can only go so far.
 
 We also publish the Docker containers built on CI to GHA registry: https://github.com/indoorvivants/sn-bindgen-web/packages

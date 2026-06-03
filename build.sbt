@@ -67,8 +67,11 @@ lazy val frontend =
     .in(file("modules/frontend"))
     .defaultAxes((isScala3 ++ isJS)*)
     .jsPlatform(Seq(V.Scala))
+    .enablePlugins(RevolverProcessPlugin)
     .settings(
       remoteCache,
+      reStartCommand := Seq("npm", "run", "dev"),
+      reStart / baseDirectory := sourceDirectory.value.getParentFile,
       scalaJSUseMainModuleInitializer := true,
       fastLinkJS / scalaJSLinkerConfig ~= {
         _.withModuleKind(ModuleKind.ESModule)
@@ -122,6 +125,7 @@ lazy val httpServer =
       libraryDependencies += "org.http4s" %%% "http4s-ember-client" % V.http4s,
       libraryDependencies += "org.http4s" %%% "http4s-ember-server" % V.http4s,
       libraryDependencies += "com.outr"   %%% "scribe-cats"         % V.scribe,
+      reStart / envVars ++= Map("WORKER_HOST" -> "http://localhost:8081"),
       nativeConfig ~= {
         _.withIncrementalCompilation(true)
           .withLinkingOptions(_ ++ Seq("-arch", "arm64"))
@@ -388,26 +392,6 @@ concurrentRestrictions in Global ++= Seq(
   Tags.limit(NativeTags.Link, 1),
   Tags.limit(ScalaJSTags.Link, 1)
 )
-
-lazy val devServer = project
-  .in(file("modules/dev-server"))
-  .enablePlugins(RevolverPlugin)
-  .settings(
-    fork         := true,
-    scalaVersion := V.Scala,
-    envVars ++= Map(
-      "HTTP_SERVER_BINARY" -> (httpServer.native(
-        V.Scala
-      ) / buildBinaryDebug).value.file.toString,
-      "WORKER_BINARY" -> (queueProcessor.native(
-        V.Scala
-      ) / buildBinaryDebug).value.file.toString,
-      "WORKER_HOST" -> "http://localhost:8081",
-      "LLVM_BIN" -> sys.env
-        .getOrElse("LLVM_BIN", "/opt/homebrew/opt/llvm@17/bin"),
-      "DATABASE_URL" -> "postgres://sn_bindgen_web@localhost:5432/sn_bindgen_web?sslmode=disable"
-    )
-  )
 
 def configurePlatform(
     rename: String => String = identity

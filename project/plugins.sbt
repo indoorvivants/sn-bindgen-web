@@ -11,12 +11,13 @@ addSbtPlugin("org.scalameta" % "sbt-scalafmt"      % "2.4.6")
 
 addSbtPlugin("org.scala-js"     % "sbt-scalajs"            % "1.21.0")
 addSbtPlugin("com.timushev.sbt" % "sbt-rewarn"             % "0.1.3")
-addSbtPlugin("io.spray"         % "sbt-revolver"           % "0.10.0")
 addSbtPlugin("org.jmotor.sbt"   % "sbt-dependency-updates" % "1.2.9")
 
 libraryDependencies += "com.indoorvivants.detective" %% "platform" % "0.0.2"
 libraryDependencies += "com.indoorvivants"           %% "yank"     % "0.0.1"
 
-addSbtPlugin("com.eed3si9n" % "sbt-buildinfo" % "0.13.1")
+addSbtPlugin("com.eed3si9n"      % "sbt-buildinfo"       % "0.13.1")
+addSbtPlugin("com.indoorvivants" % "sbt-revolver-native" % "0.11.2")
+addSbtPlugin("com.indoorvivants" % "sbt-revolver-process" % "0.11.2")
 
 resolvers += Resolver.sonatypeCentralSnapshots
